@@ -95,6 +95,8 @@ As demais telas do protótipo original (Início, Página Principal, Histórico, 
 | **Usuários** (só `admin`) | CRUD completo de contas: buscar, criar, editar e excluir qualquer usuário | `GET/POST/PUT/DELETE /usuarios` |
 | **Sair** | Limpa a sessão e volta pro login | — |
 
+Como o back-end agora exige login (`Authorization: Bearer`) pra listar, editar e excluir usuários — não só pra criar —, todas essas chamadas em `client.js` passam o token automaticamente. Um usuário comum só consegue mexer na própria conta; só `admin` mexe na de qualquer um.
+
 A sessão (token JWT + dados do usuário) fica no `localStorage`, sob as chaves `ef_token` e `ef_usuario`. `src/api/client.js` centraliza todas as chamadas à API.
 
 ---
@@ -102,6 +104,7 @@ A sessão (token JWT + dados do usuário) fica no `localStorage`, sob as chaves 
 ## Limitações conhecidas
 
 - **Login social (Google/Facebook)**: chegou a ser implementado, mas foi removido — veja o motivo no [README do back-end](https://github.com/Leticia-Maacedo/Sistema-de-Delivery-Back#limita%C3%A7%C3%B5es-conhecidas). Login é só e-mail/senha.
+- **Testar a aba Usuários (admin)**: não tem como se cadastrar como admin pela tela — precisa provisionar a conta direto no banco. O passo a passo está no [README do back-end](https://github.com/Leticia-Maacedo/Sistema-de-Delivery-Back#painel-de-administra%C3%A7%C3%A3o).
 - **Verificação por SMS e endereço de entrega**: as telas existiam no protótipo original, mas não fazem mais parte do fluxo de cadastro (que agora é só nome/e-mail/senha) — o telefone pode ser preenchido depois em "Meu Perfil".
 - **Cadastro de restaurante pela interface**: a tela de Produtos escolhe o restaurante num dropdown, mas não tem um formulário pra criar um restaurante novo — hoje existe um cadastrado via API (`POST /restaurantes`) como exemplo. Se precisar de mais, use o Swagger (`/docs`) do back-end.
 - **Pedidos, pagamento, histórico**: ainda são só dados fictícios de `data/mockData.js`; as telas continuam no repositório, mas fora da navegação nesta sprint.
