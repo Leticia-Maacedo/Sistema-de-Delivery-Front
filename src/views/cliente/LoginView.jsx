@@ -2,18 +2,13 @@ import { useState } from "react";
 import { LogIn, Eye, EyeOff } from "lucide-react";
 import PageHeader from "../../components/PageHeader";
 import Field from "../../components/Field";
-import { auth, salvarSessao, ApiError, iniciarLoginSocial } from "../../api/client";
+import { auth, salvarSessao, ApiError } from "../../api/client";
 
-const PROVEDORES = [
-  { nome: "Google", chave: "google" },
-  { nome: "Facebook", chave: "facebook" },
-];
-
-export default function LoginView({ onGo, onEntrar, erroInicial = "", mensagemInicial = "" }) {
+export default function LoginView({ onGo, onEntrar, mensagemInicial = "" }) {
   const [showPw, setShowPw] = useState(false);
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [erro, setErro] = useState(erroInicial);
+  const [erro, setErro] = useState("");
   const [mensagem, setMensagem] = useState(mensagemInicial);
   const [carregando, setCarregando] = useState(false);
 
@@ -68,26 +63,6 @@ export default function LoginView({ onGo, onEntrar, erroInicial = "", mensagemIn
         <button className="ef-btn-solid" onClick={entrar} disabled={carregando}>
           {carregando ? "ENTRANDO..." : "ENTRAR"}
         </button>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "4px 0" }}>
-          <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-          <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 10, color: "var(--muted)" }}>OU CONTINUE COM</span>
-          <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          {PROVEDORES.map((p) => (
-            <button
-              key={p.chave}
-              className="ef-btn-outline"
-              style={{ flex: 1, justifyContent: "center" }}
-              onClick={() => iniciarLoginSocial(p.chave)}
-            >
-              {p.nome}
-            </button>
-          ))}
-          <button className="ef-btn-outline" style={{ flex: 1, justifyContent: "center" }} disabled title="Em breve">
-            Apple
-          </button>
-        </div>
         <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 12, color: "var(--muted)", textAlign: "center" }}>
           Ainda não tem conta? <span style={{ color: "var(--accent)", cursor: "pointer" }} onClick={() => onGo("cadastro-dados")}>CADASTRE-SE</span>
         </span>

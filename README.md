@@ -54,7 +54,7 @@ A Sprint 1 é só o domínio Usuário, e a interface reflete isso ao pé da letr
 
 - **Sem sessão**: só existem as telas de Login e Cadastro · Dados, sem barra lateral nem outros links.
 - **Cadastro**: cria a conta (`POST /usuarios`) e manda de volta pro Login — não loga automaticamente.
-- **Login** (e-mail/senha ou Google/Facebook): autentica e mostra a tela **Meu Perfil**, a única coisa que existe depois de logado — com um cabeçalho simples e o botão **SAIR**.
+- **Login** (e-mail/senha): autentica e mostra a tela **Meu Perfil**, a única coisa que existe depois de logado — com um cabeçalho simples e o botão **SAIR**.
 
 As demais telas do protótipo original (Início, Página Principal, Histórico, Pagamento, Cadastro · Celular, Cadastro · Endereço, Parceiro, Admin) continuam no código em `src/views/`, mas não são mais alcançáveis pela navegação — ficam reservadas pra quando as próximas sprints (restaurante, pedido, entrega...) tiverem back-end de verdade.
 
@@ -65,7 +65,6 @@ As demais telas do protótipo original (Início, Página Principal, Histórico, 
 | Tela | O que faz | Endpoint da API |
 |---|---|---|
 | **Login** (e-mail/senha) | Autentica e guarda o JWT | `POST /auth/login` |
-| **Login social** (Google/Facebook) | Redireciona pro provedor, volta autenticado | `GET /auth/{provedor}/login` |
 | **Cadastro · Dados** | Cria a conta e manda de volta pro login | `POST /usuarios` |
 | **Meu Perfil** | Ver, editar e excluir a própria conta | `GET /auth/eu`, `PUT /usuarios/{id}`, `DELETE /usuarios/{id}` |
 | **Sair** | Limpa a sessão e volta pro login | — |
@@ -76,6 +75,7 @@ A sessão (token JWT + dados do usuário) fica no `localStorage`, sob as chaves 
 
 ## Limitações conhecidas
 
+- **Login social (Google/Facebook)**: chegou a ser implementado, mas foi removido — veja o motivo no [README do back-end](https://github.com/Leticia-Maacedo/Sistema-de-Delivery-Back#limita%C3%A7%C3%B5es-conhecidas). Login é só e-mail/senha.
 - **Verificação por SMS e endereço de entrega**: as telas existiam no protótipo original, mas não fazem mais parte do fluxo de cadastro (que agora é só nome/e-mail/senha) — o telefone pode ser preenchido depois em "Meu Perfil".
 - **Restaurantes, pedidos, pagamento, histórico**: ainda são só dados fictícios de `data/mockData.js`; as telas continuam no repositório, mas fora da navegação nesta sprint.
 - **Sem controle de acesso por rota**: nada impede alguém de manipular o estado do React pra tentar ver outra tela — o "portão" de login é só de navegação, não é uma barreira de segurança (e não precisa ser, já que não há back-end pra essas áreas ainda).

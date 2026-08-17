@@ -52,17 +52,6 @@ export function atualizarUsuarioSalvo(usuario) {
   localStorage.setItem(USUARIO_KEY, JSON.stringify(usuario));
 }
 
-export function iniciarLoginSocial(provedor) {
-  window.location.href = `${API_URL}/auth/${provedor}/login`;
-}
-
-export async function completarLoginSocial(token) {
-  localStorage.setItem(TOKEN_KEY, token);
-  const usuario = await auth.eu();
-  salvarSessao(token, usuario);
-  return usuario;
-}
-
 export const auth = {
   login: (email, senha) => request("/auth/login", { method: "POST", body: { email, senha } }),
   eu: () => request("/auth/eu", { auth: true }),

@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Truck, LogOut } from "lucide-react";
 
-import { completarLoginSocial, limparSessao, obterUsuarioSalvo } from "./api/client";
+import { limparSessao, obterUsuarioSalvo } from "./api/client";
 
 import LoginView from "./views/cliente/LoginView";
 import CadastroDadosView from "./views/cliente/CadastroDadosView";
@@ -13,7 +13,6 @@ import "./styles/global.css";
 // (sem menu nenhum); depois de logar, só existe a tela do próprio usuário.
 export default function App() {
   const [view, setView] = useState("login");
-  const [oauthErro, setOauthErro] = useState("");
   const [cadastroMensagem, setCadastroMensagem] = useState("");
   // Contador "burro" só pra forçar um novo render quando a sessão muda
   // (login, logout, editar perfil) — obterUsuarioSalvo() lê do
@@ -21,23 +20,6 @@ export default function App() {
   const [, setSessaoVersao] = useState(0);
   const notificarSessaoAtualizada = () => setSessaoVersao((v) => v + 1);
   const usuarioLogado = obterUsuarioSalvo();
-
-  // Volta do redirect do Google/Facebook: /?oauth_token=... ou /?oauth_erro=...
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get("oauth_token");
-    const erro = params.get("oauth_erro");
-
-    if (token) {
-      completarLoginSocial(token)
-        .then(() => notificarSessaoAtualizada())
-        .catch(() => setOauthErro("Não foi possível concluir o login social."))
-        .finally(() => window.history.replaceState({}, "", window.location.pathname));
-    } else if (erro) {
-      setOauthErro(erro);
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-  }, []);
 
   const goTo = (key) => setView(key);
 
@@ -85,7 +67,7 @@ export default function App() {
           {view === "cadastro-dados" ? (
             <CadastroDadosView onGo={goTo} aoCadastrar={aoCadastrar} />
           ) : (
-            <LoginView onGo={goTo} onEntrar={entrar} erroInicial={oauthErro} mensagemInicial={cadastroMensagem} />
+            <LoginView onGo={goTo} onEntrar={entrar} mensagemInicial={cadastroMensagem} />
           )}
         </main>
       )}
