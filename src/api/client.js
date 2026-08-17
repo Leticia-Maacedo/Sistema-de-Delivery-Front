@@ -63,4 +63,15 @@ export const usuarios = {
   remover: (id) => request(`/usuarios/${id}`, { method: "DELETE" }),
 };
 
+export const produtos = {
+  listar: () => request("/produtos"),
+  criar: (dados) => request("/produtos", { method: "POST", body: dados }),
+  atualizar: (id, dados) => request(`/produtos/${id}`, { method: "PUT", body: dados }),
+  remover: (id) => request(`/produtos/${id}`, { method: "DELETE" }),
+};
+
+export const restaurantes = {
+  listar: () => request("/restaurantes"),
+};
+
 export { ApiError };
