@@ -59,8 +59,9 @@ export const auth = {
 
 export const usuarios = {
   criar: (dados) => request("/usuarios", { method: "POST", body: dados }),
-  atualizar: (id, dados) => request(`/usuarios/${id}`, { method: "PUT", body: dados }),
-  remover: (id) => request(`/usuarios/${id}`, { method: "DELETE" }),
+  listar: () => request("/usuarios", { auth: true }),
+  atualizar: (id, dados) => request(`/usuarios/${id}`, { method: "PUT", body: dados, auth: true }),
+  remover: (id) => request(`/usuarios/${id}`, { method: "DELETE", auth: true }),
 };
 
 export const produtos = {

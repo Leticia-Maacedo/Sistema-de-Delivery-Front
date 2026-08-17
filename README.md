@@ -3,7 +3,7 @@
 Interface web da plataforma EntregaFood, construída em **React 18 + Vite 5**. Consome a API REST do back-end ([Sistema-de-Delivery-Back](https://github.com/Leticia-Maacedo/Sistema-de-Delivery-Back)).
 
 **Sprint 1** — telas de Login, Cadastro e Perfil do Usuário, integradas de ponta a ponta com a API real.
-**Extra** — tela de Produtos (CRUD completo, cadastro de cardápio).
+**Extra** — tela de Produtos (CRUD completo, cadastro de cardápio) e painel de administração (CRUD de qualquer usuário).
 **Grupo:** Amigos do Gilberto · Turma A · Faculdade Impacta
 
 ---
@@ -48,14 +48,14 @@ A Sprint 1 é só o domínio Usuário, e a interface reflete isso ao pé da letr
 
       (usuário logado) ┌──────────────────────────┐
       no localStorage   │ MEU PERFIL  │  PRODUTOS  │  abas depois de logar,
-                        │ ver/editar/ │  CRUD do   │  variam por tipo de conta
-                        │  excluir    │  cardápio  │  (veja tabela abaixo)
+                        │ ver/editar/ │  ou        │  variam por tipo de conta
+                        │  excluir    │  USUÁRIOS  │  (veja tabela abaixo)
                         └──────────────────────────┘
 ```
 
 - **Sem sessão**: só existem as telas de Login e Cadastro · Dados, sem barra lateral nem outros links.
 - **Cadastro**: escolhe o tipo de conta (Cliente, Motoboy ou Restaurante — Admin não se autocadastra), cria a conta (`POST /usuarios`) e manda de volta pro Login — não loga automaticamente.
-- **Login** (e-mail/senha): autentica e mostra as abas do cabeçalho — sempre **Meu Perfil**, mais **Produtos** só pra quem é `restaurante` — com o botão **SAIR**.
+- **Login** (e-mail/senha): autentica e mostra as abas do cabeçalho conforme o tipo da conta — com o botão **SAIR**.
 
 ### Abas por tipo de conta
 
@@ -64,7 +64,7 @@ A Sprint 1 é só o domínio Usuário, e a interface reflete isso ao pé da letr
 | `cliente` | Meu Perfil |
 | `entregador` (motoboy) | Meu Perfil |
 | `restaurante` | Meu Perfil, Produtos |
-| `admin` | Meu Perfil *(não tem tela própria construída ainda; conta é provisionada manualmente, não por autocadastro)* |
+| `admin` | Meu Perfil, **Usuários** — consulta, edita e exclui a conta de qualquer usuário da plataforma |
 
 As demais telas do protótipo original (Início, Página Principal, Histórico, Pagamento, Cadastro · Celular, Cadastro · Endereço, Parceiro, Admin) continuam no código em `src/views/`, mas não são mais alcançáveis pela navegação — ficam reservadas pra quando as próximas sprints (restaurante, pedido, entrega...) tiverem back-end de verdade.
 
@@ -78,7 +78,10 @@ As demais telas do protótipo original (Início, Página Principal, Histórico, 
 | **Cadastro · Dados** | Cria a conta e manda de volta pro login | `POST /usuarios` |
 | **Meu Perfil** | Ver, editar e excluir a própria conta | `GET /auth/eu`, `PUT /usuarios/{id}`, `DELETE /usuarios/{id}` |
 | **Produtos** | Cadastrar, listar, editar e excluir produtos do cardápio | `POST/GET/PUT/DELETE /produtos`, `GET /restaurantes` |
+| **Usuários** *(só admin)* | Consultar, editar e excluir a conta de qualquer usuário | `GET /usuarios`, `PUT/DELETE /usuarios/{id}` |
 | **Sair** | Limpa a sessão e volta pro login | — |
+
+Como o back-end agora exige login (`Authorization: Bearer`) pra listar, editar e excluir usuários — não só pra criar —, todas essas chamadas em `client.js` passam o token automaticamente. Um usuário comum só consegue mexer na própria conta; só `admin` mexe na de qualquer um.
 
 A sessão (token JWT + dados do usuário) fica no `localStorage`, sob as chaves `ef_token` e `ef_usuario`. `src/api/client.js` centraliza todas as chamadas à API.
 
@@ -87,6 +90,7 @@ A sessão (token JWT + dados do usuário) fica no `localStorage`, sob as chaves 
 ## Limitações conhecidas
 
 - **Login social (Google/Facebook)**: chegou a ser implementado, mas foi removido — veja o motivo no [README do back-end](https://github.com/Leticia-Maacedo/Sistema-de-Delivery-Back#limita%C3%A7%C3%B5es-conhecidas). Login é só e-mail/senha.
+- **Testar a aba Usuários (admin)**: não tem como se cadastrar como admin pela tela — precisa provisionar a conta direto no banco. O passo a passo está no [README do back-end](https://github.com/Leticia-Maacedo/Sistema-de-Delivery-Back#painel-de-administra%C3%A7%C3%A3o).
 - **Verificação por SMS e endereço de entrega**: as telas existiam no protótipo original, mas não fazem mais parte do fluxo de cadastro (que agora é só nome/e-mail/senha) — o telefone pode ser preenchido depois em "Meu Perfil".
 - **Cadastro de restaurante pela interface**: a tela de Produtos escolhe o restaurante num dropdown, mas não tem um formulário pra criar um restaurante novo — hoje existe um cadastrado via API (`POST /restaurantes`) como exemplo. Se precisar de mais, use o Swagger (`/docs`) do back-end.
 - **Pedidos, pagamento, histórico**: ainda são só dados fictícios de `data/mockData.js`; as telas continuam no repositório, mas fora da navegação nesta sprint.
