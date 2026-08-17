@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Truck, Circle, Menu as MenuIcon } from "lucide-react";
 
 import { GROUPS } from "./data/navigation";
 import EmptyState from "./components/EmptyState";
+import { completarLoginSocial } from "./api/client";
 
 import InicioCategoriasView from "./views/cliente/InicioCategoriasView";
 import LoginView from "./views/cliente/LoginView";
@@ -31,6 +32,29 @@ export default function App() {
   const [view, setView] = useState("inicio-categorias");
   const [orderId, setOrderId] = useState(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [oauthErro, setOauthErro] = useState("");
+
+  // Volta do redirect do Google/Facebook: /?oauth_token=... ou /?oauth_erro=...
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("oauth_token");
+    const erro = params.get("oauth_erro");
+
+    if (token) {
+      completarLoginSocial(token)
+        .then(() => {
+          setGroupKey("cliente");
+          setView("pagina-principal");
+        })
+        .catch(() => setOauthErro("Não foi possível concluir o login social."))
+        .finally(() => window.history.replaceState({}, "", window.location.pathname));
+    } else if (erro) {
+      setOauthErro(erro);
+      setGroupKey("cliente");
+      setView("login");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   const openOrder = (id) => { setOrderId(id); setView("pedido-detalhe"); };
   const goTo = (key) => {
@@ -46,7 +70,7 @@ export default function App() {
   const renderView = () => {
     switch (view) {
       case "inicio-categorias": return <InicioCategoriasView onGo={goTo} />;
-      case "login": return <LoginView onGo={goTo} />;
+      case "login": return <LoginView onGo={goTo} erroInicial={oauthErro} />;
       case "cadastro-dados": return <CadastroDadosView onGo={goTo} />;
       case "cadastro-telefone": return <CadastroTelefoneView onGo={goTo} />;
       case "cadastro-endereco": return <CadastroEnderecoView onGo={goTo} />;
