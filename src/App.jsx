@@ -10,14 +10,20 @@ import ProdutosView from "./views/cliente/ProdutosView";
 
 import "./styles/global.css";
 
-const ABAS_LOGADO = [
-  { key: "perfil", label: "Meu Perfil", Icon: User },
-  { key: "produtos", label: "Produtos", Icon: Package },
-];
+const ABA_PERFIL = { key: "perfil", label: "Meu Perfil", Icon: User };
+const ABA_PRODUTOS = { key: "produtos", label: "Produtos", Icon: Package };
 
-// Sprint 1 é só o domínio Usuário: sem estar logado só existe Login/Cadastro
-// (sem menu nenhum). Depois de logar, só existem as telas do próprio
-// usuário e o cadastro de Produtos (extra pedido além do Usuário).
+// Cada tipo de conta ve so o que faz sentido pra ele: Produtos (cardapio)
+// e coisa de Restaurante. Cliente, Motoboy e Admin ainda nao tem tela
+// propria construida, entao ficam so com o Perfil por enquanto.
+function abasParaTipo(tipo) {
+  if (tipo === "restaurante") return [ABA_PERFIL, ABA_PRODUTOS];
+  return [ABA_PERFIL];
+}
+
+// Sem estar logado só existe Login/Cadastro (sem menu nenhum). Depois de
+// logar, as abas disponíveis dependem do tipo de conta (cliente, motoboy,
+// restaurante ou admin) — veja abasParaTipo().
 export default function App() {
   const [view, setView] = useState("login");
   const [abaLogada, setAbaLogada] = useState("perfil");
@@ -28,6 +34,7 @@ export default function App() {
   const [, setSessaoVersao] = useState(0);
   const notificarSessaoAtualizada = () => setSessaoVersao((v) => v + 1);
   const usuarioLogado = obterUsuarioSalvo();
+  const abasDisponiveis = usuarioLogado ? abasParaTipo(usuarioLogado.tipo) : [];
 
   const goTo = (key) => setView(key);
 
@@ -37,11 +44,13 @@ export default function App() {
   };
 
   const entrar = () => {
+    setAbaLogada("perfil");
     notificarSessaoAtualizada();
   };
 
   const sair = () => {
     limparSessao();
+    setAbaLogada("perfil");
     notificarSessaoAtualizada();
     setView("login");
   };
@@ -60,7 +69,7 @@ export default function App() {
                 <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 11, color: "var(--accent)" }}>ENTREGAFOOD</span>
               </div>
               <nav style={{ display: "flex", gap: 4 }}>
-                {ABAS_LOGADO.map((a) => (
+                {abasDisponiveis.map((a) => (
                   <button
                     key={a.key}
                     onClick={() => setAbaLogada(a.key)}

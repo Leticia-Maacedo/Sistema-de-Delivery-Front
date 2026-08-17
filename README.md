@@ -47,15 +47,24 @@ A Sprint 1 é só o domínio Usuário, e a interface reflete isso ao pé da letr
                     └──────────────┘    sozinho)         sucesso)
 
       (usuário logado) ┌──────────────────────────┐
-      no localStorage   │ MEU PERFIL  │  PRODUTOS  │  duas abas depois de logar:
-                        │ ver/editar/ │  CRUD do   │  perfil próprio e cadastro
-                        │  excluir    │  cardápio  │  de produtos. Só isso.
+      no localStorage   │ MEU PERFIL  │  PRODUTOS  │  abas depois de logar,
+                        │ ver/editar/ │  CRUD do   │  variam por tipo de conta
+                        │  excluir    │  cardápio  │  (veja tabela abaixo)
                         └──────────────────────────┘
 ```
 
 - **Sem sessão**: só existem as telas de Login e Cadastro · Dados, sem barra lateral nem outros links.
-- **Cadastro**: cria a conta (`POST /usuarios`) e manda de volta pro Login — não loga automaticamente.
-- **Login** (e-mail/senha): autentica e mostra duas abas no cabeçalho — **Meu Perfil** e **Produtos** — com o botão **SAIR**.
+- **Cadastro**: escolhe o tipo de conta (Cliente, Motoboy ou Restaurante — Admin não se autocadastra), cria a conta (`POST /usuarios`) e manda de volta pro Login — não loga automaticamente.
+- **Login** (e-mail/senha): autentica e mostra as abas do cabeçalho — sempre **Meu Perfil**, mais **Produtos** só pra quem é `restaurante` — com o botão **SAIR**.
+
+### Abas por tipo de conta
+
+| Tipo | Abas visíveis |
+|---|---|
+| `cliente` | Meu Perfil |
+| `entregador` (motoboy) | Meu Perfil |
+| `restaurante` | Meu Perfil, Produtos |
+| `admin` | Meu Perfil *(não tem tela própria construída ainda; conta é provisionada manualmente, não por autocadastro)* |
 
 As demais telas do protótipo original (Início, Página Principal, Histórico, Pagamento, Cadastro · Celular, Cadastro · Endereço, Parceiro, Admin) continuam no código em `src/views/`, mas não são mais alcançáveis pela navegação — ficam reservadas pra quando as próximas sprints (restaurante, pedido, entrega...) tiverem back-end de verdade.
 
