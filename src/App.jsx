@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Truck, Circle, Menu as MenuIcon } from "lucide-react";
+import { Truck, Circle, Menu as MenuIcon, UserCircle } from "lucide-react";
 
 import { GROUPS } from "./data/navigation";
 import EmptyState from "./components/EmptyState";
-import { completarLoginSocial } from "./api/client";
+import { completarLoginSocial, obterUsuarioSalvo } from "./api/client";
 
 import InicioCategoriasView from "./views/cliente/InicioCategoriasView";
 import LoginView from "./views/cliente/LoginView";
@@ -13,26 +13,29 @@ import CadastroEnderecoView from "./views/cliente/CadastroEnderecoView";
 import PaginaPrincipalView from "./views/cliente/PaginaPrincipalView";
 import PagamentoView from "./views/cliente/PagamentoView";
 import HistoricoView from "./views/cliente/HistoricoView";
-
-import AreaParceiroView from "./views/parceiro/AreaParceiroView";
-import CardapiosView from "./views/parceiro/CardapiosView";
-import AvaliacoesView from "./views/parceiro/AvaliacoesView";
-
-import DashboardView from "./views/admin/DashboardView";
-import RestaurantesView from "./views/admin/RestaurantesView";
-import PedidosView from "./views/admin/PedidosView";
+import PerfilView from "./views/cliente/PerfilView";
 import PedidoDetalheView from "./views/admin/PedidoDetalheView";
-import EntregasView from "./views/admin/EntregasView";
-import FuncionalidadesView from "./views/admin/FuncionalidadesView";
 
 import "./styles/global.css";
 
+// Sprint 1 cobre só o domínio Usuário — Parceiro e Admin ficam pra
+// próximas sprints, então nem aparecem na navegação por enquanto.
+const NAV_CLIENTE = [
+  ...GROUPS.find((g) => g.key === "cliente").nav,
+  { key: "perfil", label: "Meu Perfil", Icon: UserCircle },
+];
+
 export default function App() {
-  const [groupKey, setGroupKey] = useState("cliente");
   const [view, setView] = useState("inicio-categorias");
   const [orderId, setOrderId] = useState(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [oauthErro, setOauthErro] = useState("");
+  // Contador "burro" só pra forçar um novo render quando a sessão muda
+  // sem trocar de tela (ex: editar o próprio perfil) — obterUsuarioSalvo()
+  // lê do localStorage, que o React não observa sozinho.
+  const [, setSessaoVersao] = useState(0);
+  const notificarSessaoAtualizada = () => setSessaoVersao((v) => v + 1);
+  const usuarioLogado = obterUsuarioSalvo();
 
   // Volta do redirect do Google/Facebook: /?oauth_token=... ou /?oauth_erro=...
   useEffect(() => {
@@ -42,30 +45,18 @@ export default function App() {
 
     if (token) {
       completarLoginSocial(token)
-        .then(() => {
-          setGroupKey("cliente");
-          setView("pagina-principal");
-        })
+        .then(() => setView("pagina-principal"))
         .catch(() => setOauthErro("Não foi possível concluir o login social."))
         .finally(() => window.history.replaceState({}, "", window.location.pathname));
     } else if (erro) {
       setOauthErro(erro);
-      setGroupKey("cliente");
       setView("login");
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
 
   const openOrder = (id) => { setOrderId(id); setView("pedido-detalhe"); };
-  const goTo = (key) => {
-    setView(key);
-    const g = GROUPS.find((g) => g.nav.some((n) => n.key === key));
-    if (g) setGroupKey(g.key);
-  };
-  const switchGroup = (key) => {
-    setGroupKey(key);
-    setView(GROUPS.find((g) => g.key === key).nav[0].key);
-  };
+  const goTo = (key) => setView(key);
 
   const renderView = () => {
     switch (view) {
@@ -77,20 +68,11 @@ export default function App() {
       case "pagina-principal": return <PaginaPrincipalView onGo={goTo} />;
       case "pagamento": return <PagamentoView />;
       case "historico": return <HistoricoView onOpenOrder={openOrder} />;
-      case "area-parceiro": return <AreaParceiroView onGo={goTo} />;
-      case "cardapios": return <CardapiosView />;
-      case "avaliacoes": return <AvaliacoesView />;
-      case "dashboard": return <DashboardView onOpenOrder={openOrder} />;
-      case "restaurantes": return <RestaurantesView />;
-      case "pedidos": return <PedidosView onOpenOrder={openOrder} />;
-      case "pedido-detalhe": return <PedidoDetalheView orderId={orderId} onBack={() => setView("pedidos")} />;
-      case "entregas": return <EntregasView />;
-      case "funcionalidades": return <FuncionalidadesView />;
+      case "perfil": return <PerfilView onGo={goTo} aoAtualizarSessao={notificarSessaoAtualizada} />;
+      case "pedido-detalhe": return <PedidoDetalheView orderId={orderId} onBack={() => setView("historico")} />;
       default: return <EmptyState title="EM CONSTRUÇÃO" subtitle="Essa área ainda não foi implementada." />;
     }
   };
-
-  const currentGroup = GROUPS.find((g) => g.key === groupKey);
 
   return (
     <div style={{ fontFamily: "'Exo 2', sans-serif", minHeight: "100vh", background: "var(--bg)", display: "flex", color: "#fff" }}>
@@ -106,19 +88,8 @@ export default function App() {
           <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 10, color: "var(--muted)", marginLeft: 26 }}>sistema de delivery</span>
         </div>
 
-        <div style={{ display: "flex", background: "var(--card)", borderRadius: 8, padding: 3, border: "1px solid var(--border)" }}>
-          {GROUPS.map((g) => (
-            <button key={g.key} onClick={() => switchGroup(g.key)} style={{
-              flex: 1, padding: "7px 4px", borderRadius: 6, border: "none", cursor: "pointer",
-              fontFamily: "'Orbitron', sans-serif", fontSize: 9, letterSpacing: 0.3,
-              background: groupKey === g.key ? "var(--accent)" : "transparent",
-              color: groupKey === g.key ? "#0D0D0D" : "var(--muted)",
-            }}>{g.label}</button>
-          ))}
-        </div>
-
         <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          {currentGroup.nav.map((n) => (
+          {NAV_CLIENTE.map((n) => (
             <button key={n.key} onClick={() => { setView(n.key); setMobileNavOpen(false); }}
               style={{
                 display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 6,
@@ -132,11 +103,21 @@ export default function App() {
           ))}
         </nav>
 
-        <div className="ef-card" style={{ padding: 12, marginTop: "auto", display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Orbitron', sans-serif", fontSize: 12, color: "#0D0D0D" }}>L</div>
+        <div
+          className="ef-card"
+          style={{ padding: 12, marginTop: "auto", display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
+          onClick={() => setView(usuarioLogado ? "perfil" : "login")}
+        >
+          <div style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Orbitron', sans-serif", fontSize: 12, color: "#0D0D0D" }}>
+            {usuarioLogado ? usuarioLogado.nome.charAt(0).toUpperCase() : "?"}
+          </div>
           <div>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 12, color: "#fff" }}>Leticia</div>
-            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 10, color: "var(--muted)" }}>ADMIN</div>
+            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 12, color: "#fff" }}>
+              {usuarioLogado ? usuarioLogado.nome : "Visitante"}
+            </div>
+            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 10, color: "var(--muted)" }}>
+              {usuarioLogado ? usuarioLogado.tipo.toUpperCase() : "ENTRAR"}
+            </div>
           </div>
         </div>
         <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 10, color: "var(--good)", display: "flex", alignItems: "center", gap: 6 }}>

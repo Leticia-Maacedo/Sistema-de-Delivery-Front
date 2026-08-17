@@ -48,6 +48,10 @@ export function obterUsuarioSalvo() {
   return bruto ? JSON.parse(bruto) : null;
 }
 
+export function atualizarUsuarioSalvo(usuario) {
+  localStorage.setItem(USUARIO_KEY, JSON.stringify(usuario));
+}
+
 export function iniciarLoginSocial(provedor) {
   window.location.href = `${API_URL}/auth/${provedor}/login`;
 }
@@ -67,6 +71,7 @@ export const auth = {
 export const usuarios = {
   criar: (dados) => request("/usuarios", { method: "POST", body: dados }),
   atualizar: (id, dados) => request(`/usuarios/${id}`, { method: "PUT", body: dados }),
+  remover: (id) => request(`/usuarios/${id}`, { method: "DELETE" }),
 };
 
 export { ApiError };
