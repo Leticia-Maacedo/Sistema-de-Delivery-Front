@@ -1,11 +1,12 @@
 import {
-  LayoutGrid, LogIn, Smartphone, MapPin, Home, CreditCard, ClipboardList,
+  LayoutGrid, LogIn, UserPlus, Smartphone, MapPin, Home, CreditCard, ClipboardList,
   Store, Package, Star, Truck, ListChecks, Users, Search, CheckCircle2,
 } from "lucide-react";
 
 export const NAV_CLIENTE = [
   { key: "inicio-categorias", label: "Início & Categorias", Icon: LayoutGrid },
   { key: "login", label: "Acesso do Usuário", Icon: LogIn },
+  { key: "cadastro-dados", label: "Cadastro · Dados", Icon: UserPlus },
   { key: "cadastro-telefone", label: "Cadastro · Celular", Icon: Smartphone },
   { key: "cadastro-endereco", label: "Cadastro · Endereço", Icon: MapPin },
   { key: "pagina-principal", label: "Página Principal", Icon: Home },

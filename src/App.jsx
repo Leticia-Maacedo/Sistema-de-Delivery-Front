@@ -6,6 +6,7 @@ import EmptyState from "./components/EmptyState";
 
 import InicioCategoriasView from "./views/cliente/InicioCategoriasView";
 import LoginView from "./views/cliente/LoginView";
+import CadastroDadosView from "./views/cliente/CadastroDadosView";
 import CadastroTelefoneView from "./views/cliente/CadastroTelefoneView";
 import CadastroEnderecoView from "./views/cliente/CadastroEnderecoView";
 import PaginaPrincipalView from "./views/cliente/PaginaPrincipalView";
@@ -46,6 +47,7 @@ export default function App() {
     switch (view) {
       case "inicio-categorias": return <InicioCategoriasView onGo={goTo} />;
       case "login": return <LoginView onGo={goTo} />;
+      case "cadastro-dados": return <CadastroDadosView onGo={goTo} />;
       case "cadastro-telefone": return <CadastroTelefoneView onGo={goTo} />;
       case "cadastro-endereco": return <CadastroEnderecoView onGo={goTo} />;
       case "pagina-principal": return <PaginaPrincipalView onGo={goTo} />;
