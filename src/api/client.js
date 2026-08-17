@@ -58,11 +58,12 @@ export const auth = {
 };
 
 export const usuarios = {
-  listar: (tipo) => request(`/usuarios${tipo ? `?tipo=${tipo}` : ""}`),
-  obter: (id) => request(`/usuarios/${id}`),
+  // listar/obter/atualizar/remover exigem login: são a conta ou admin.
+  listar: (tipo) => request(`/usuarios${tipo ? `?tipo=${tipo}` : ""}`, { auth: true }),
+  obter: (id) => request(`/usuarios/${id}`, { auth: true }),
   criar: (dados) => request("/usuarios", { method: "POST", body: dados }),
-  atualizar: (id, dados) => request(`/usuarios/${id}`, { method: "PUT", body: dados }),
-  remover: (id) => request(`/usuarios/${id}`, { method: "DELETE" }),
+  atualizar: (id, dados) => request(`/usuarios/${id}`, { method: "PUT", body: dados, auth: true }),
+  remover: (id) => request(`/usuarios/${id}`, { method: "DELETE", auth: true }),
 };
 
 export const produtos = {
