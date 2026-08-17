@@ -2,9 +2,9 @@ import { useState } from "react";
 import { UserPlus } from "lucide-react";
 import PageHeader from "../../components/PageHeader";
 import Field from "../../components/Field";
-import { usuarios, auth, salvarSessao, ApiError } from "../../api/client";
+import { usuarios, ApiError } from "../../api/client";
 
-export default function CadastroDadosView({ onGo }) {
+export default function CadastroDadosView({ onGo, aoCadastrar }) {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -22,9 +22,7 @@ export default function CadastroDadosView({ onGo }) {
     setCarregando(true);
     try {
       await usuarios.criar({ nome, email, senha, tipo: "cliente" });
-      const { access_token, usuario } = await auth.login(email, senha);
-      salvarSessao(access_token, usuario);
-      onGo("cadastro-telefone");
+      aoCadastrar?.();
     } catch (e) {
       setErro(e instanceof ApiError ? e.message : "Não foi possível conectar ao servidor.");
     } finally {

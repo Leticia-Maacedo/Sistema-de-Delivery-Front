@@ -9,20 +9,22 @@ const PROVEDORES = [
   { nome: "Facebook", chave: "facebook" },
 ];
 
-export default function LoginView({ onGo, erroInicial = "" }) {
+export default function LoginView({ onGo, onEntrar, erroInicial = "", mensagemInicial = "" }) {
   const [showPw, setShowPw] = useState(false);
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState(erroInicial);
+  const [mensagem, setMensagem] = useState(mensagemInicial);
   const [carregando, setCarregando] = useState(false);
 
   const entrar = async () => {
     setErro("");
+    setMensagem("");
     setCarregando(true);
     try {
       const { access_token, usuario } = await auth.login(email, senha);
       salvarSessao(access_token, usuario);
-      onGo("pagina-principal");
+      onEntrar?.();
     } catch (e) {
       setErro(e instanceof ApiError ? e.message : "Não foi possível conectar ao servidor.");
     } finally {
@@ -56,6 +58,9 @@ export default function LoginView({ onGo, erroInicial = "" }) {
             </button>
           </div>
         </label>
+        {mensagem && (
+          <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 12, color: "var(--good)" }}>{mensagem}</span>
+        )}
         {erro && (
           <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 12, color: "var(--bad, #e05c5c)" }}>{erro}</span>
         )}

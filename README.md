@@ -30,31 +30,33 @@ VITE_API_URL=http://localhost:8000
 
 ---
 
-## Estrutura do projeto
+## Fluxo da aplicação
+
+A Sprint 1 é só o domínio Usuário, e a interface reflete isso ao pé da letra — **sem menu nenhum até logar**:
 
 ```
-src/
-├── api/
-│   └── client.js           Cliente HTTP: chama a API, guarda o JWT e o
-│                            usuário logado no localStorage
-├── components/              Peças reutilizáveis (Field, PageHeader, StatusBadge...)
-├── data/
-│   ├── mockData.js         Dados fictícios (restaurantes, pedidos) — ainda
-│   │                        usados pelas telas que não têm back-end ainda
-│   └── navigation.js       Itens do menu lateral
-└── views/
-    ├── cliente/             ATIVO nesta sprint — é o que aparece no app:
-    │   ├── LoginView              e-mail/senha + Google/Facebook
-    │   ├── CadastroDadosView      passo 1 do cadastro (cria a conta de verdade)
-    │   ├── CadastroTelefoneView   passo 2 (verificação simulada, salva o telefone)
-    │   ├── CadastroEnderecoView   passo 3 (ainda só visual, sem back-end)
-    │   ├── PerfilView             ver / editar / excluir a própria conta
-    │   └── PaginaPrincipalView, PagamentoView, HistoricoView...  (mock)
-    ├── parceiro/             Construído, mas OCULTO da navegação nesta sprint
-    └── admin/                Construído, mas OCULTO da navegação nesta sprint
+                    ┌──────────────┐
+      (nada salvo)  │    LOGIN     │◄────────────────┐
+      no localStorage└──────┬───────┘                  │
+                    CADASTRE-SE │ ▲ ENTRAR              │ SAIR
+                              ▼ │                      │
+                    ┌──────────────┐                  │
+                    │ CADASTRO ·   │──cria a conta──►  volta pro LOGIN
+                    │   DADOS      │   (não loga        (com mensagem de
+                    └──────────────┘    sozinho)         sucesso)
+
+      (usuário logado) ┌──────────────┐
+      no localStorage   │  MEU PERFIL  │  única tela depois de logar:
+                        │ ver/editar/  │  ver, editar e excluir a própria
+                        │   excluir    │  conta. Sem outro item de menu.
+                        └──────────────┘
 ```
 
-**Por que Parceiro e Admin existem no código mas não aparecem no app?** A Sprint 1 cobre só o domínio Usuário. As telas de Parceiro (restaurante) e Admin já foram desenhadas, mas ficam reservadas pra quando essas partes do back-end existirem — não fazem sentido expostas a um usuário comum agora.
+- **Sem sessão**: só existem as telas de Login e Cadastro · Dados, sem barra lateral nem outros links.
+- **Cadastro**: cria a conta (`POST /usuarios`) e manda de volta pro Login — não loga automaticamente.
+- **Login** (e-mail/senha ou Google/Facebook): autentica e mostra a tela **Meu Perfil**, a única coisa que existe depois de logado — com um cabeçalho simples e o botão **SAIR**.
+
+As demais telas do protótipo original (Início, Página Principal, Histórico, Pagamento, Cadastro · Celular, Cadastro · Endereço, Parceiro, Admin) continuam no código em `src/views/`, mas não são mais alcançáveis pela navegação — ficam reservadas pra quando as próximas sprints (restaurante, pedido, entrega...) tiverem back-end de verdade.
 
 ---
 
@@ -64,20 +66,19 @@ src/
 |---|---|---|
 | **Login** (e-mail/senha) | Autentica e guarda o JWT | `POST /auth/login` |
 | **Login social** (Google/Facebook) | Redireciona pro provedor, volta autenticado | `GET /auth/{provedor}/login` |
-| **Cadastro · Dados** | Cria a conta e já faz login automático | `POST /usuarios` + `POST /auth/login` |
-| **Cadastro · Celular** | Verificação simulada (não é SMS real — veja limitações) e salva o telefone | `PUT /usuarios/{id}` |
+| **Cadastro · Dados** | Cria a conta e manda de volta pro login | `POST /usuarios` |
 | **Meu Perfil** | Ver, editar e excluir a própria conta | `GET /auth/eu`, `PUT /usuarios/{id}`, `DELETE /usuarios/{id}` |
+| **Sair** | Limpa a sessão e volta pro login | — |
 
-A sessão (token JWT + dados do usuário) fica no `localStorage`, sob as chaves `ef_token` e `ef_usuario`.
+A sessão (token JWT + dados do usuário) fica no `localStorage`, sob as chaves `ef_token` e `ef_usuario`. `src/api/client.js` centraliza todas as chamadas à API.
 
 ---
 
 ## Limitações conhecidas
 
-- **Verificação por SMS**: código de 4 dígitos simulado no cadastro, não chega SMS de verdade (o back-end explica o porquê — conta trial do Twilio bloqueia a compra de número sem upgrade pago).
-- **Endereço de entrega**: tela existe e navega normalmente, mas não salva nada — o back-end ainda não tem endpoint pra isso.
-- **Restaurantes, pedidos, pagamento, histórico**: usam dados fictícios de `data/mockData.js`, não a API. Ficam pra quando essas tabelas ganharem back-end.
-- **Sem controle de acesso por rota**: esconder Parceiro/Admin da navegação impede o usuário comum de *chegar* lá clicando, mas não é uma barreira de segurança real (não há back-end pra essas áreas ainda de qualquer forma).
+- **Verificação por SMS e endereço de entrega**: as telas existiam no protótipo original, mas não fazem mais parte do fluxo de cadastro (que agora é só nome/e-mail/senha) — o telefone pode ser preenchido depois em "Meu Perfil".
+- **Restaurantes, pedidos, pagamento, histórico**: ainda são só dados fictícios de `data/mockData.js`; as telas continuam no repositório, mas fora da navegação nesta sprint.
+- **Sem controle de acesso por rota**: nada impede alguém de manipular o estado do React pra tentar ver outra tela — o "portão" de login é só de navegação, não é uma barreira de segurança (e não precisa ser, já que não há back-end pra essas áreas ainda).
 
 ---
 

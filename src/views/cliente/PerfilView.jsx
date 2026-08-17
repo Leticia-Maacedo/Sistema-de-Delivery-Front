@@ -11,22 +11,8 @@ import {
   ApiError,
 } from "../../api/client";
 
-export default function PerfilView({ onGo, aoAtualizarSessao }) {
-  const usuarioSalvo = obterUsuarioSalvo();
-
-  if (!usuarioSalvo) {
-    return (
-      <div style={{ maxWidth: 380, margin: "0 auto" }}>
-        <PageHeader Icon={UserCircle} title="MEU PERFIL" subtitle="Você precisa entrar para ver seus dados" />
-        <button className="ef-btn-solid" onClick={() => onGo("login")}>IR PARA O LOGIN</button>
-      </div>
-    );
-  }
-
-  return <FormularioPerfil usuario={usuarioSalvo} onGo={onGo} aoAtualizarSessao={aoAtualizarSessao} />;
-}
-
-function FormularioPerfil({ usuario, onGo, aoAtualizarSessao }) {
+export default function PerfilView({ aoAtualizarSessao }) {
+  const usuario = obterUsuarioSalvo();
   const [nome, setNome] = useState(usuario.nome);
   const [email, setEmail] = useState(usuario.email);
   const [telefone, setTelefone] = useState(usuario.telefone || "");
@@ -65,7 +51,7 @@ function FormularioPerfil({ usuario, onGo, aoAtualizarSessao }) {
     try {
       await usuarios.remover(usuario.id);
       limparSessao();
-      onGo("inicio-categorias");
+      aoAtualizarSessao?.();
     } catch (e) {
       setErro(e instanceof ApiError ? e.message : "Não foi possível excluir a conta.");
       setExcluindo(false);
