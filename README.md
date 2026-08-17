@@ -3,14 +3,28 @@
 Interface web da plataforma EntregaFood, construída em **React 18 + Vite 5**. Consome a API REST do back-end ([Sistema-de-Delivery-Back](https://github.com/Leticia-Maacedo/Sistema-de-Delivery-Back)).
 
 **Sprint 1** — telas de Login, Cadastro e Perfil do Usuário, integradas de ponta a ponta com a API real.
-**Extra** — tela de Produtos (CRUD completo, cadastro de cardápio).
+**Extra** — tela de Produtos (CRUD completo, cadastro de cardápio) e painel de administração (CRUD completo de usuários, só para contas `admin`).
 **Grupo:** Amigos do Gilberto · Turma A · Faculdade Impacta
 
 ---
 
 ## Como rodar
 
-### 1. Suba o back-end primeiro
+### Opção rápida — tudo em Docker (banco + API + front-end)
+
+Não precisa instalar Node nem Python, só o [Docker Desktop](https://www.docker.com/products/docker-desktop/). Clone este repositório e o do back-end lado a lado (mesma pasta-pai):
+
+```bash
+git clone https://github.com/Leticia-Maacedo/Sistema-de-Delivery-Back.git
+git clone https://github.com/Leticia-Maacedo/Sistema-de-Delivery-Front.git
+cd Sistema-de-Delivery-Back
+cp .env.example .env        # no Windows: copy .env.example .env
+docker compose -f docker-compose.full.yml up -d --build
+```
+
+Front em **http://localhost:5173**, API em `http://localhost:8000`. Detalhes (volumes, hot-reload, como derrubar) estão no [README do back-end](https://github.com/Leticia-Maacedo/Sistema-de-Delivery-Back#opção-rápida--tudo-em-docker-banco--api--front-end).
+
+### 1. Suba o back-end primeiro (rodando sem Docker)
 
 Esse front não funciona sozinho — ele depende da API rodando. Veja o [README do back-end](https://github.com/Leticia-Maacedo/Sistema-de-Delivery-Back) pra subir o Postgres e a API em `http://localhost:8000`.
 
@@ -46,16 +60,16 @@ A Sprint 1 é só o domínio Usuário, e a interface reflete isso ao pé da letr
                     │   DADOS      │   (não loga        (com mensagem de
                     └──────────────┘    sozinho)         sucesso)
 
-      (usuário logado) ┌──────────────────────────┐
-      no localStorage   │ MEU PERFIL  │  PRODUTOS  │  abas depois de logar,
-                        │ ver/editar/ │  CRUD do   │  variam por tipo de conta
-                        │  excluir    │  cardápio  │  (veja tabela abaixo)
-                        └──────────────────────────┘
+      (usuário logado) ┌───────────────────────────────────────┐
+      no localStorage   │ MEU PERFIL  │  PRODUTOS  │  USUÁRIOS  │  abas depois de logar,
+                        │ ver/editar/ │  CRUD do   │  CRUD de   │  variam por tipo de conta
+                        │  excluir    │  cardápio  │  contas    │  (veja tabela abaixo)
+                        └───────────────────────────────────────┘
 ```
 
 - **Sem sessão**: só existem as telas de Login e Cadastro · Dados, sem barra lateral nem outros links.
 - **Cadastro**: escolhe o tipo de conta (Cliente, Motoboy ou Restaurante — Admin não se autocadastra), cria a conta (`POST /usuarios`) e manda de volta pro Login — não loga automaticamente.
-- **Login** (e-mail/senha): autentica e mostra as abas do cabeçalho — sempre **Meu Perfil**, mais **Produtos** só pra quem é `restaurante` — com o botão **SAIR**.
+- **Login** (e-mail/senha): autentica e mostra as abas do cabeçalho — sempre **Meu Perfil**, mais **Produtos** pra quem é `restaurante` ou **Usuários** pra quem é `admin` — com o botão **SAIR**.
 
 ### Abas por tipo de conta
 
@@ -64,7 +78,7 @@ A Sprint 1 é só o domínio Usuário, e a interface reflete isso ao pé da letr
 | `cliente` | Meu Perfil |
 | `entregador` (motoboy) | Meu Perfil |
 | `restaurante` | Meu Perfil, Produtos |
-| `admin` | Meu Perfil *(não tem tela própria construída ainda; conta é provisionada manualmente, não por autocadastro)* |
+| `admin` | Meu Perfil, Usuários *(CRUD completo de contas; conta admin é provisionada manualmente, não por autocadastro)* |
 
 As demais telas do protótipo original (Início, Página Principal, Histórico, Pagamento, Cadastro · Celular, Cadastro · Endereço, Parceiro, Admin) continuam no código em `src/views/`, mas não são mais alcançáveis pela navegação — ficam reservadas pra quando as próximas sprints (restaurante, pedido, entrega...) tiverem back-end de verdade.
 
@@ -78,6 +92,7 @@ As demais telas do protótipo original (Início, Página Principal, Histórico, 
 | **Cadastro · Dados** | Cria a conta e manda de volta pro login | `POST /usuarios` |
 | **Meu Perfil** | Ver, editar e excluir a própria conta | `GET /auth/eu`, `PUT /usuarios/{id}`, `DELETE /usuarios/{id}` |
 | **Produtos** | Cadastrar, listar, editar e excluir produtos do cardápio | `POST/GET/PUT/DELETE /produtos`, `GET /restaurantes` |
+| **Usuários** (só `admin`) | CRUD completo de contas: buscar, criar, editar e excluir qualquer usuário | `GET/POST/PUT/DELETE /usuarios` |
 | **Sair** | Limpa a sessão e volta pro login | — |
 
 A sessão (token JWT + dados do usuário) fica no `localStorage`, sob as chaves `ef_token` e `ef_usuario`. `src/api/client.js` centraliza todas as chamadas à API.

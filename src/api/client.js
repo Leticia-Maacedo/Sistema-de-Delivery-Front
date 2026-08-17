@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 const TOKEN_KEY = "ef_token";
 const USUARIO_KEY = "ef_usuario";
@@ -58,6 +58,8 @@ export const auth = {
 };
 
 export const usuarios = {
+  listar: (tipo) => request(`/usuarios${tipo ? `?tipo=${tipo}` : ""}`),
+  obter: (id) => request(`/usuarios/${id}`),
   criar: (dados) => request("/usuarios", { method: "POST", body: dados }),
   atualizar: (id, dados) => request(`/usuarios/${id}`, { method: "PUT", body: dados }),
   remover: (id) => request(`/usuarios/${id}`, { method: "DELETE" }),

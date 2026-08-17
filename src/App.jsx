@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Truck, LogOut, User, Package } from "lucide-react";
+import { Truck, LogOut, User, Package, Users } from "lucide-react";
 
 import { limparSessao, obterUsuarioSalvo } from "./api/client";
 
@@ -7,17 +7,21 @@ import LoginView from "./views/cliente/LoginView";
 import CadastroDadosView from "./views/cliente/CadastroDadosView";
 import PerfilView from "./views/cliente/PerfilView";
 import ProdutosView from "./views/cliente/ProdutosView";
+import UsuariosView from "./views/admin/UsuariosView";
 
 import "./styles/global.css";
 
 const ABA_PERFIL = { key: "perfil", label: "Meu Perfil", Icon: User };
 const ABA_PRODUTOS = { key: "produtos", label: "Produtos", Icon: Package };
+const ABA_USUARIOS = { key: "usuarios", label: "Usuários", Icon: Users };
 
 // Cada tipo de conta ve so o que faz sentido pra ele: Produtos (cardapio)
-// e coisa de Restaurante. Cliente, Motoboy e Admin ainda nao tem tela
-// propria construida, entao ficam so com o Perfil por enquanto.
+// e coisa de Restaurante, Usuarios (CRUD) e coisa de Admin. Cliente e
+// Motoboy ainda nao tem tela propria construida, entao ficam so com o
+// Perfil por enquanto.
 function abasParaTipo(tipo) {
   if (tipo === "restaurante") return [ABA_PERFIL, ABA_PRODUTOS];
+  if (tipo === "admin") return [ABA_PERFIL, ABA_USUARIOS];
   return [ABA_PERFIL];
 }
 
@@ -96,6 +100,8 @@ export default function App() {
           <main style={{ padding: "32px 24px" }}>
             {abaLogada === "produtos" ? (
               <ProdutosView />
+            ) : abaLogada === "usuarios" ? (
+              <UsuariosView />
             ) : (
               <PerfilView aoAtualizarSessao={notificarSessaoAtualizada} />
             )}
