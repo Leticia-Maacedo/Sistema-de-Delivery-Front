@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LogIn, Eye, EyeOff } from "lucide-react";
 import PageHeader from "../../components/PageHeader";
 import Field from "../../components/Field";
@@ -12,16 +12,60 @@ export default function LoginView({ onGo, onEntrar, mensagemInicial = "" }) {
   const [mensagem, setMensagem] = useState(mensagemInicial);
   const [carregando, setCarregando] = useState(false);
 
+  useEffect(() => {
+  const processarLoginGoogle = async () => {
+    const hash = window.location.hash;
+
+    if (!hash.startsWith("#oauth_token=")) return;
+
+    const token = hash.replace("#oauth_token=", "");
+
+    if (!token) return;
+
+    // Remove o token da URL após o retorno do Google
+    window.history.replaceState(
+      null,
+      "",
+      window.location.pathname
+    );
+
+    try {
+      localStorage.setItem("ef_token", token);
+
+      const usuario = await auth.eu();
+
+      salvarSessao(token, usuario);
+
+      onEntrar?.();
+    } catch (e) {
+      localStorage.removeItem("ef_token");
+
+      setErro(
+        e instanceof ApiError
+          ? e.message
+          : "Não foi possível concluir o login com Google."
+      );
+    }
+  };
+
+  processarLoginGoogle();
+}, [onEntrar]);
+
   const entrar = async () => {
     setErro("");
     setMensagem("");
     setCarregando(true);
+
     try {
       const { access_token, usuario } = await auth.login(email, senha);
       salvarSessao(access_token, usuario);
       onEntrar?.();
     } catch (e) {
-      setErro(e instanceof ApiError ? e.message : "Não foi possível conectar ao servidor.");
+      setErro(
+        e instanceof ApiError
+          ? e.message
+          : "Não foi possível conectar ao servidor."
+      );
     } finally {
       setCarregando(false);
     }
@@ -29,16 +73,41 @@ export default function LoginView({ onGo, onEntrar, mensagemInicial = "" }) {
 
   return (
     <div style={{ maxWidth: 380, margin: "0 auto" }}>
-      <PageHeader Icon={LogIn} title="ACESSO" subtitle="Entre na sua conta EntregaFood" />
-      <div className="ef-card" style={{ padding: 22, marginTop: 18, display: "flex", flexDirection: "column", gap: 14 }}>
+      <PageHeader
+        Icon={LogIn}
+        title="ACESSO"
+        subtitle="Entre na sua conta EntregaFood"
+      />
+
+      <div
+        className="ef-card"
+        style={{
+          padding: 22,
+          marginTop: 18,
+          display: "flex",
+          flexDirection: "column",
+          gap: 14,
+        }}
+      >
         <Field
           label="E-MAIL"
           placeholder="seu@email.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
-        <label style={{ display: "flex", flexDirection: "column", gap: 6, fontFamily: "'Exo 2', sans-serif" }}>
-          <span style={{ fontSize: 11, color: "var(--muted)" }}>SENHA</span>
+
+        <label
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+            fontFamily: "'Exo 2', sans-serif",
+          }}
+        >
+          <span style={{ fontSize: 11, color: "var(--muted)" }}>
+            SENHA
+          </span>
+
           <div style={{ position: "relative" }}>
             <input
               type={showPw ? "text" : "password"}
@@ -48,23 +117,88 @@ export default function LoginView({ onGo, onEntrar, mensagemInicial = "" }) {
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
             />
-            <button onClick={() => setShowPw((s) => !s)} style={{ position: "absolute", right: 10, top: 9, background: "none", border: "none", cursor: "pointer" }}>
-              {showPw ? <EyeOff size={15} color="var(--muted)" /> : <Eye size={15} color="var(--muted)" />}
+
+            <button
+              onClick={() => setShowPw((s) => !s)}
+              style={{
+                position: "absolute",
+                right: 10,
+                top: 9,
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+              }}
+            >
+              {showPw ? (
+                <EyeOff size={15} color="var(--muted)" />
+              ) : (
+                <Eye size={15} color="var(--muted)" />
+              )}
             </button>
           </div>
         </label>
+
         {mensagem && (
-          <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 12, color: "var(--good)" }}>{mensagem}</span>
+          <span
+            style={{
+              fontFamily: "'Exo 2', sans-serif",
+              fontSize: 12,
+              color: "var(--good)",
+            }}
+          >
+            {mensagem}
+          </span>
         )}
+
         {erro && (
-          <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 12, color: "var(--bad, #e05c5c)" }}>{erro}</span>
+          <span
+            style={{
+              fontFamily: "'Exo 2', sans-serif",
+              fontSize: 12,
+              color: "var(--bad, #e05c5c)",
+            }}
+          >
+            {erro}
+          </span>
         )}
-        <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 11, color: "var(--accent)", cursor: "pointer" }}>Esqueceu sua senha?</span>
-        <button className="ef-btn-solid" onClick={entrar} disabled={carregando}>
+
+        <span
+          style={{
+            fontFamily: "'Exo 2', sans-serif",
+            fontSize: 11,
+            color: "var(--accent)",
+            cursor: "pointer",
+          }}
+        >
+          Esqueceu sua senha?
+        </span>
+
+        <button
+          className="ef-btn-solid"
+          onClick={entrar}
+          disabled={carregando}
+        >
           {carregando ? "ENTRANDO..." : "ENTRAR"}
         </button>
-        <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 12, color: "var(--muted)", textAlign: "center" }}>
-          Ainda não tem conta? <span style={{ color: "var(--accent)", cursor: "pointer" }} onClick={() => onGo("cadastro-dados")}>CADASTRE-SE</span>
+
+        <span
+          style={{
+            fontFamily: "'Exo 2', sans-serif",
+            fontSize: 12,
+            color: "var(--muted)",
+            textAlign: "center",
+          }}
+        >
+          Ainda não tem conta?{" "}
+          <span
+            style={{
+              color: "var(--accent)",
+              cursor: "pointer",
+            }}
+            onClick={() => onGo("cadastro-dados")}
+          >
+            CADASTRE-SE
+          </span>
         </span>
       </div>
     </div>
