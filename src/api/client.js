@@ -23,7 +23,10 @@
  * 4. App.jsx lê isso na primeira renderização, salva o token e limpa a URL.
  */
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "https://entregafood-back-dev.onrender.com";
+  
 const TOKEN_KEY = "entregafood_token";
 
 /* ------------------------------------------------------------------ */
