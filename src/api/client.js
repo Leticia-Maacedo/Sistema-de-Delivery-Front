@@ -80,11 +80,11 @@ export async function apiFetch(path, options = {}) {
 /* ------------------------------------------------------------------ */
 
 export function getGoogleLoginUrl() {
-  return `${API_URL}/auth/google/login`;
+  return `${API_URL}/auth/google`;
 }
 
 export function getFacebookLoginUrl() {
-  return `${API_URL}/auth/facebook/login`;
+  return `${API_URL}/auth/facebook`;
 }
 
 export function loginWithGoogle() {
@@ -101,16 +101,27 @@ export function loginWithFacebook() {
  * Retorna { token, erro }.
  */
 export function consumeOAuthResultFromQuery() {
-  const params = new URLSearchParams(window.location.search);
-  const token = params.get("oauth_token");
-  const erro = params.get("oauth_erro");
+  const queryParams = new URLSearchParams(window.location.search);
+
+  let token = queryParams.get("oauth_token");
+  let erro = queryParams.get("oauth_erro");
+
+  if (!token && window.location.hash.startsWith("#oauth_token=")) {
+    token = window.location.hash.replace("#oauth_token=", "");
+  }
+
+  if (!erro && window.location.hash.startsWith("#oauth_erro=")) {
+    erro = window.location.hash.replace("#oauth_erro=", "");
+  }
 
   if (token || erro) {
     if (token) saveToken(token);
-    const url = new URL(window.location.href);
-    url.searchParams.delete("oauth_token");
-    url.searchParams.delete("oauth_erro");
-    window.history.replaceState({}, "", url.toString());
+
+    window.history.replaceState(
+      {},
+      "",
+      window.location.pathname
+    );
   }
 
   return { token, erro };
