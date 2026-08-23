@@ -13,7 +13,7 @@ export const NAV_CLIENTE = [
 
 /* Telas que existem mas não aparecem no nav do topo (acessadas via fluxo, ex: cadastro) */
 export const NAV_CLIENTE_HIDDEN = [
-  { key: "cadastro-telefone" },
+  { key: "cadastro-dados" },
   { key: "cadastro-endereco" },
 ];
 

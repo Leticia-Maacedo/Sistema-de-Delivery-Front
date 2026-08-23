@@ -1,201 +1,191 @@
-import { useEffect, useState } from "react";
-import { Truck, LogOut, User, Package, Users } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Truck, ArrowLeft, Search, Bell, MessageCircle } from "lucide-react";
 
-import { limparSessao, obterUsuarioSalvo } from "./api/client";
+import { NAV_CLIENTE, NAV_CLIENTE_HIDDEN, NAV_PARCEIRO, NAV_ADMIN_SIDEBAR, ADMIN_TITLES } from "./data/navigation";
+import { consumeOAuthResultFromQuery, isLoggedIn } from "./api/client";
 
+import InicioCategoriasView from "./views/cliente/InicioCategoriasView";
 import LoginView from "./views/cliente/LoginView";
 import CadastroDadosView from "./views/cliente/CadastroDadosView";
-import PerfilView from "./views/cliente/PerfilView";
-import ProdutosView from "./views/cliente/ProdutosView";
-import UsuariosView from "./views/admin/UsuariosView";
+import CadastroEnderecoView from "./views/cliente/CadastroEnderecoView";
+import PaginaPrincipalView from "./views/cliente/PaginaPrincipalView";
+import PagamentoView from "./views/cliente/PagamentoView";
+import HistoricoView from "./views/cliente/HistoricoView";
 
-import "./styles/global.css";
+import AreaParceiroView from "./views/parceiro/AreaParceiroView";
+import CardapiosView from "./views/parceiro/CardapiosView";
+import AvaliacoesView from "./views/parceiro/AvaliacoesView";
 
-const ABA_PERFIL = { key: "perfil", label: "Meu Perfil", Icon: User };
-const ABA_PRODUTOS = { key: "produtos", label: "Produtos", Icon: Package };
-const ABA_USUARIOS = { key: "usuarios", label: "Usuários", Icon: Users };
+import DashboardView from "./views/admin/DashboardView";
+import RestaurantesView from "./views/admin/RestaurantesView";
+import PedidosView from "./views/admin/PedidosView";
+import PedidoDetalheView from "./views/admin/PedidoDetalheView";
+import EntregasView from "./views/admin/EntregasView";
+import FuncionalidadesView from "./views/admin/FuncionalidadesView";
+import EmptyState from "./components/EmptyState";
 
-function abasParaTipo(tipo) {
-  if (tipo === "restaurante") return [ABA_PERFIL, ABA_PRODUTOS];
-  if (tipo === "admin") return [ABA_PERFIL, ABA_USUARIOS];
-  return [ABA_PERFIL];
+/* Grupo de links do header (usado pelas seções CLIENTE e PARCEIRO) */
+function NavGroup({ label, items, view, onGo }) {
+  return (
+    <div>
+      <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 10, color: "var(--muted)", letterSpacing: 1, marginBottom: 4 }}>
+        {label}
+      </div>
+      <div style={{ display: "flex", gap: 18 }}>
+        {items.map((n) => (
+          <span
+            key={n.key}
+            onClick={() => onGo(n.key)}
+            style={{
+              fontFamily: "'Exo 2', sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer",
+              color: view === n.key ? "var(--accent)" : "#d8d8d8",
+            }}
+          >
+            {n.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function App() {
-  const [view, setView] = useState("login");
-  const [abaLogada, setAbaLogada] = useState("perfil");
-  const [cadastroMensagem, setCadastroMensagem] = useState("");
-  const [, setSessaoVersao] = useState(0);
+  const [groupKey, setGroupKey] = useState("cliente");
+  const [view, setView] = useState("inicio-categorias");
+  const [orderId, setOrderId] = useState(null);
+  const [oauthErro, setOauthErro] = useState("");
 
-  const notificarSessaoAtualizada = () =>
-    setSessaoVersao((v) => v + 1);
-
-  const usuarioLogado = obterUsuarioSalvo();
-
+  // Ao carregar, verifica se voltamos de um login OAuth (Google/Facebook).
+  // O oauth_controller redireciona para "/?oauth_token=<jwt>" (sucesso)
+  // ou "/?oauth_erro=<mensagem>" (falha) depois do callback.
   useEffect(() => {
-    if (window.location.hash.startsWith("#oauth_token=")) {
-      window.history.replaceState(
-        null,
-        "",
-        window.location.pathname
-      );
+    const { token, erro } = consumeOAuthResultFromQuery();
+    if (token) {
+      setGroupKey("cliente");
+      setView("pagina-principal");
+    } else if (erro) {
+      setOauthErro(erro);
+      setGroupKey("cliente");
+      setView("login");
+    } else if (isLoggedIn()) {
+      setGroupKey("cliente");
+      setView("pagina-principal");
     }
-  }, [usuarioLogado]);
+  }, []);
 
-  const abasDisponiveis = usuarioLogado
-    ? abasParaTipo(usuarioLogado.tipo)
-    : [];
-
-  const goTo = (key) => setView(key);
-
-  const aoCadastrar = () => {
-    setCadastroMensagem(
-      "Conta criada com sucesso! Faça login para continuar."
-    );
-    setView("login");
+  const openOrder = (id) => {
+    setOrderId(id);
+    setView("pedido-detalhe");
   };
 
-  const entrar = () => {
-    setAbaLogada("perfil");
-    notificarSessaoAtualizada();
+  const goTo = (key) => {
+    setView(key);
+    if (NAV_CLIENTE.some((n) => n.key === key) || NAV_CLIENTE_HIDDEN.some((n) => n.key === key)) setGroupKey("cliente");
+    else if (NAV_PARCEIRO.some((n) => n.key === key)) setGroupKey("parceiro");
+    else setGroupKey("admin");
   };
 
-  const sair = () => {
-    limparSessao();
-    setAbaLogada("perfil");
-    notificarSessaoAtualizada();
-    setView("login");
+  const renderView = () => {
+    switch (view) {
+      case "inicio-categorias": return <InicioCategoriasView onGo={goTo} />;
+      case "login": return <LoginView onGo={goTo} erroInicial={oauthErro} />;
+      case "cadastro-dados": return <CadastroDadosView onGo={goTo} aoCadastrar={() => goTo("cadastro-endereco")} />;
+      case "cadastro-endereco": return <CadastroEnderecoView onGo={goTo} />;
+      case "pagina-principal": return <PaginaPrincipalView />;
+      case "pagamento": return <PagamentoView />;
+      case "historico": return <HistoricoView onOpenOrder={openOrder} />;
+      case "area-parceiro": return <AreaParceiroView onGo={goTo} />;
+      case "cardapios": return <CardapiosView />;
+      case "avaliacoes": return <AvaliacoesView />;
+      case "dashboard": return <DashboardView onOpenOrder={openOrder} />;
+      case "restaurantes": return <RestaurantesView />;
+      case "pedidos": return <PedidosView onOpenOrder={openOrder} />;
+      case "pedido-detalhe": return <PedidoDetalheView orderId={orderId} onBack={() => setView("pedidos")} />;
+      case "entregas": return <EntregasView />;
+      case "funcionalidades": return <FuncionalidadesView />;
+      default: return <EmptyState title="EM CONSTRUÇÃO" subtitle="Essa área ainda não foi implementada." />;
+    }
   };
+
+  const isAdmin = groupKey === "admin";
+  const adminTitle = ADMIN_TITLES[view] || ADMIN_TITLES.dashboard;
 
   return (
-    <div
-      style={{
-        fontFamily: "'Exo 2', sans-serif",
-        minHeight: "100vh",
-        background: "var(--bg)",
-        color: "#fff",
-      }}
-    >
-      {usuarioLogado ? (
-        <>
-          <header
+    <div style={{ minHeight: "100vh" }}>
+      {!isAdmin && (
+        <header style={{ borderBottom: "1px solid var(--border)", background: "var(--panel)" }}>
+          <div style={{ maxWidth: 1200, margin: "0 auto", padding: "16px 24px" }}>
+            <div className="ef-logo" style={{ fontSize: 17 }}>
+              ENTREGA<span style={{ color: "var(--accent)" }}>FOOD</span>
+            </div>
+          </div>
+          <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px 12px", display: "flex", gap: 28, flexWrap: "wrap" }}>
+            <NavGroup label="CLIENTE" items={NAV_CLIENTE} view={view} onGo={goTo} />
+            <NavGroup label="PARCEIRO" items={NAV_PARCEIRO} view={view} onGo={goTo} />
+          </div>
+        </header>
+      )}
+
+      {isAdmin ? (
+        <div style={{ display: "flex" }}>
+          <aside
             style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "14px 24px",
-              borderBottom: "1px solid var(--border)",
-              background: "var(--panel)",
+              width: 224, background: "var(--panel)", borderRight: "1px solid var(--border)",
+              padding: 18, display: "flex", flexDirection: "column", gap: 16, minHeight: "100vh", flexShrink: 0,
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 24,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <Truck size={18} color="var(--accent)" />
-
-                <span
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Truck size={18} color="var(--accent)" />
+              <span className="ef-logo" style={{ fontSize: 11 }}>ENTREGAFOOD</span>
+            </div>
+            <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {NAV_ADMIN_SIDEBAR.map((n) => (
+                <button
+                  key={n.key}
+                  onClick={() => setView(n.key)}
                   style={{
-                    fontFamily: "'Press Start 2P', monospace",
-                    fontSize: 11,
-                    color: "var(--accent)",
+                    display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 8,
+                    background: view === n.key || (n.key === "pedidos" && view === "pedido-detalhe") ? "var(--accent2-bg)" : "transparent",
+                    border: "none", color: view === n.key ? "var(--accent2)" : "#c7c7c7",
+                    fontFamily: "'Exo 2', sans-serif", fontSize: 12.5, cursor: "pointer", textAlign: "left",
                   }}
                 >
-                  ENTREGAFOOD
-                </span>
-              </div>
-
-              <nav style={{ display: "flex", gap: 4 }}>
-                {abasDisponiveis.map((a) => (
-                  <button
-                    key={a.key}
-                    onClick={() => setAbaLogada(a.key)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      padding: "7px 12px",
-                      borderRadius: 6,
-                      border: "none",
-                      cursor: "pointer",
-                      fontFamily: "'Exo 2', sans-serif",
-                      fontSize: 12.5,
-                      background:
-                        abaLogada === a.key
-                          ? "var(--hover)"
-                          : "transparent",
-                      color:
-                        abaLogada === a.key
-                          ? "var(--accent)"
-                          : "#c7c7c7",
-                    }}
-                  >
-                    <a.Icon size={14} /> {a.label}
-                  </button>
-                ))}
-              </nav>
-            </div>
-
-            <button
-              className="ef-btn-outline"
-              style={{
-                padding: "6px 12px",
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                width: "auto",
-              }}
-              onClick={sair}
-            >
-              <LogOut size={14} /> SAIR
+                  <n.Icon size={15} /> {n.label}
+                </button>
+              ))}
+            </nav>
+            <button onClick={() => goTo("inicio-categorias")} className="ef-btn-outline" style={{ marginTop: "auto", justifyContent: "center" }}>
+              <ArrowLeft size={14} /> SAIR DO ADMIN
             </button>
-          </header>
+          </aside>
 
-          <main style={{ padding: "32px 24px" }}>
-            {abaLogada === "produtos" ? (
-              <ProdutosView />
-            ) : abaLogada === "usuarios" ? (
-              <UsuariosView />
-            ) : (
-              <PerfilView
-                aoAtualizarSessao={notificarSessaoAtualizada}
-              />
-            )}
+          <main style={{ flex: 1 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 28px", borderBottom: "1px solid var(--border)" }}>
+              <div>
+                <span style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 700, fontSize: 15, color: "#fff" }}>{adminTitle[0]}</span>
+                <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 11, color: "var(--muted)" }}>{adminTitle[1]}</div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <div className="ef-card" style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", width: 300 }}>
+                  <Search size={14} color="var(--muted)" />
+                  <input placeholder="Buscar pedidos, restaurantes, usuários..." className="ef-input" style={{ border: "none", padding: 0, background: "transparent" }} />
+                </div>
+                <Bell size={17} color="var(--muted)" />
+                <MessageCircle size={17} color="var(--muted)" />
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--accent2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>L</div>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 600 }}>Leticia</div>
+                    <div style={{ fontSize: 10, color: "var(--muted)" }}>ADMIN</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: "24px 28px" }}>{renderView()}</div>
           </main>
-        </>
+        </div>
       ) : (
-        <main
-          style={{
-            minHeight: "100vh",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 24,
-          }}
-        >
-          {view === "cadastro-dados" ? (
-            <CadastroDadosView
-              onGo={goTo}
-              aoCadastrar={aoCadastrar}
-            />
-          ) : (
-            <LoginView
-              onGo={goTo}
-              onEntrar={entrar}
-              mensagemInicial={cadastroMensagem}
-            />
-          )}
-        </main>
+        <main style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px" }}>{renderView()}</main>
       )}
     </div>
   );

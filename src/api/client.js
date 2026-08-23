@@ -27,19 +27,41 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const TOKEN_KEY = "entregafood_token";
 
 /* ------------------------------------------------------------------ */
+/* Erro de API — algumas telas usam "instanceof ApiError" pra distinguir */
+/* um erro de validação/negócio (back respondeu, mas com erro) de uma    */
+/* falha de rede/servidor fora do ar.                                   */
+/* ------------------------------------------------------------------ */
+
+export class ApiError extends Error {
+  constructor(message, status, detail) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.detail = detail;
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* Fetch genérico                                                       */
 /* ------------------------------------------------------------------ */
 
 export async function apiFetch(path, options = {}) {
   const token = getToken();
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
+  let res;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+    });
+  } catch (erroDeRede) {
+    // back-end fora do ar, sem CORS, sem internet etc — não é ApiError,
+    // é falha de conexão mesmo (útil pro "e instanceof ApiError" das telas).
+    throw erroDeRede;
+  }
 
   if (!res.ok) {
     const erro = await res.json().catch(() => ({}));
@@ -47,7 +69,7 @@ export async function apiFetch(path, options = {}) {
     const detalhe = Array.isArray(erro.detail)
       ? erro.detail.map((d) => d.msg).join(" ")
       : erro.detail;
-    throw new Error(detalhe || `Erro ${res.status} ao chamar ${path}`);
+    throw new ApiError(detalhe || `Erro ${res.status} ao chamar ${path}`, res.status, erro.detail);
   }
   if (res.status === 204) return null;
   return res.json();
@@ -157,6 +179,20 @@ export async function atualizarUsuario(id, dados) {
 export async function removerUsuario(id) {
   return apiFetch(`/usuarios/${id}`, { method: "DELETE" });
 }
+
+/**
+ * Mesmas operações acima, só que agrupadas num namespace — algumas telas
+ * (ex: CadastroDadosView) importam assim: `usuarios.criar(...)`.
+ * POST /usuarios só cria a conta, não loga automaticamente — se quiser
+ * logar em seguida, chame loginWithPassword(email, senha) depois.
+ */
+export const usuarios = {
+  criar: (dados) => apiFetch("/usuarios", { method: "POST", body: JSON.stringify(dados) }),
+  listar: listarUsuarios,
+  obter: obterUsuario,
+  atualizar: atualizarUsuario,
+  remover: removerUsuario,
+};
 
 /* ------------------------------------------------------------------ */
 /* Token (localStorage)                                                 */
