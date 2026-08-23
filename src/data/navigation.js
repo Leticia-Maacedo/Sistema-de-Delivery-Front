@@ -1,47 +1,47 @@
 import {
-  LayoutGrid, LogIn, UserPlus, Smartphone, MapPin, Home, CreditCard, ClipboardList,
-  Store, Package, Star, Truck, ListChecks, Users, Search, CheckCircle2,
+  Home, Users, Store, Package, ClipboardList, Truck, CreditCard, BarChart3,
+  Settings, Plug, HelpCircle, ListChecks,
 } from "lucide-react";
 
 export const NAV_CLIENTE = [
-  { key: "inicio-categorias", label: "Início & Categorias", Icon: LayoutGrid },
-  { key: "login", label: "Acesso do Usuário", Icon: LogIn },
-  { key: "cadastro-dados", label: "Cadastro · Dados", Icon: UserPlus },
-  { key: "cadastro-telefone", label: "Cadastro · Celular", Icon: Smartphone },
-  { key: "cadastro-endereco", label: "Cadastro · Endereço", Icon: MapPin },
-  { key: "pagina-principal", label: "Página Principal", Icon: Home },
-  { key: "pagamento", label: "Formas de Pagamento", Icon: CreditCard },
-  { key: "historico", label: "Histórico de Pedidos", Icon: ClipboardList },
+  { key: "inicio-categorias", label: "Início" },
+  { key: "pagina-principal", label: "Explorar" },
+  { key: "historico", label: "Pedidos" },
+  { key: "pagamento", label: "Pagamento" },
+  { key: "login", label: "Entrar" },
+];
+
+/* Telas que existem mas não aparecem no nav do topo (acessadas via fluxo, ex: cadastro) */
+export const NAV_CLIENTE_HIDDEN = [
+  { key: "cadastro-telefone" },
+  { key: "cadastro-endereco" },
 ];
 
 export const NAV_PARCEIRO = [
-  { key: "area-parceiro", label: "Área do Parceiro", Icon: Store },
-  { key: "cardapios", label: "Gerenciar Cardápio", Icon: Package },
-  { key: "avaliacoes", label: "Avaliações", Icon: Star },
+  { key: "area-parceiro", label: "Área do Parceiro" },
+  { key: "cardapios", label: "Cardápios" },
+  { key: "avaliacoes", label: "Avaliações" },
 ];
 
-export const NAV_ADMIN = [
+export const NAV_ADMIN_SIDEBAR = [
   { key: "dashboard", label: "Dashboard", Icon: Home },
+  { key: "usuarios", label: "Usuários", Icon: Users },
   { key: "restaurantes", label: "Restaurantes", Icon: Store },
+  { key: "produtos", label: "Produtos", Icon: Package },
   { key: "pedidos", label: "Pedidos", Icon: ClipboardList },
   { key: "entregas", label: "Entregas", Icon: Truck },
+  { key: "pagamentos", label: "Pagamentos", Icon: CreditCard },
+  { key: "relatorios", label: "Relatórios", Icon: BarChart3 },
+  { key: "configuracoes", label: "Configurações", Icon: Settings },
+  { key: "integracoes", label: "Integrações", Icon: Plug },
+  { key: "suporte", label: "Suporte", Icon: HelpCircle },
   { key: "funcionalidades", label: "Funcionalidades", Icon: ListChecks },
 ];
 
-export const GROUPS = [
-  { key: "cliente", label: "App Cliente", nav: NAV_CLIENTE },
-  { key: "parceiro", label: "Parceiro", nav: NAV_PARCEIRO },
-  { key: "admin", label: "Admin", nav: NAV_ADMIN },
-];
-
-export const FLOW = [
-  { label: "Usuário", Icon: Users },
-  { label: "Login /\nCadastro", Icon: CheckCircle2 },
-  { label: "Explorar", Icon: Search },
-  { label: "Restaurantes", Icon: Store },
-  { label: "Produtos", Icon: Package },
-  { label: "Carrinho", Icon: ClipboardList },
-  { label: "Pagamento", Icon: CreditCard },
-  { label: "Pedido\nConfirmado", Icon: CheckCircle2 },
-  { label: "Entrega", Icon: Truck },
-];
+export const ADMIN_TITLES = {
+  dashboard: ["Dashboard", "Visão geral do sistema"],
+  restaurantes: ["Restaurantes", "Gerencie os restaurantes parceiros"],
+  pedidos: ["Pedidos", "Todos os pedidos do sistema"],
+  entregas: ["Entregas em Andamento", "Acompanhe as entregas ativas"],
+  funcionalidades: ["Funcionalidades", "Principais funcionalidades identificadas no fluxo"],
+};

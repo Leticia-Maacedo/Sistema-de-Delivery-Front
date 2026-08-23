@@ -1,3 +1,5 @@
+import React from "react";
+
 export default function DetailRow({ icon: Icon, label, value }) {
   return (
     <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
