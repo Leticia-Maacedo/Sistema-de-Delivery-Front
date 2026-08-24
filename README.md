@@ -103,7 +103,7 @@ A sessão (token JWT + dados do usuário) fica no `localStorage`, sob as chaves 
 
 ## Limitações conhecidas
 
-- **Login social (Google/Facebook)**: chegou a ser implementado, mas foi removido — veja o motivo no [README do back-end](https://github.com/Leticia-Maacedo/Sistema-de-Delivery-Back#limita%C3%A7%C3%B5es-conhecidas). Login é só e-mail/senha.
+- **Login social (Google/Facebook)**: implementado e funcional na branch `DEV`. A autenticação OAuth com Google e Facebook está integrada ao front-end e ao back-end. Como os aplicativos OAuth estão em modo de teste nos provedores, o acesso pode ficar restrito às contas cadastradas como usuários de teste. Para colegas, professor ou outros usuários testarem o sistema sem configuração adicional, recomenda-se utilizar o login por e-mail e senha. O login social permanece disponível como prova de conceito da integração OAuth.
 - **Testar a aba Usuários (admin)**: não tem como se cadastrar como admin pela tela — precisa provisionar a conta direto no banco. O passo a passo está no [README do back-end](https://github.com/Leticia-Maacedo/Sistema-de-Delivery-Back#painel-de-administra%C3%A7%C3%A3o).
 - **Verificação por SMS e endereço de entrega**: as telas existiam no protótipo original, mas não fazem mais parte do fluxo de cadastro (que agora é só nome/e-mail/senha) — o telefone pode ser preenchido depois em "Meu Perfil".
 - **Cadastro de restaurante pela interface**: a tela de Produtos escolhe o restaurante num dropdown, mas não tem um formulário pra criar um restaurante novo — hoje existe um cadastrado via API (`POST /restaurantes`) como exemplo. Se precisar de mais, use o Swagger (`/docs`) do back-end.
