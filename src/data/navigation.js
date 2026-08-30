@@ -6,6 +6,7 @@ import {
 export const NAV_CLIENTE = [
   { key: "inicio-categorias", label: "Início" },
   { key: "pagina-principal", label: "Explorar" },
+  { key: "restaurantes-cliente", label: "Restaurantes" },
   { key: "historico", label: "Pedidos" },
   { key: "pagamento", label: "Pagamento" },
   { key: "login", label: "Entrar" },
@@ -15,6 +16,7 @@ export const NAV_CLIENTE = [
 export const NAV_CLIENTE_HIDDEN = [
   { key: "cadastro-dados" },
   { key: "cadastro-endereco" },
+  { key: "cardapio-restaurante" },
 ];
 
 export const NAV_PARCEIRO = [

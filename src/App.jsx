@@ -9,6 +9,8 @@ import LoginView from "./views/cliente/LoginView";
 import CadastroDadosView from "./views/cliente/CadastroDadosView";
 import CadastroEnderecoView from "./views/cliente/CadastroEnderecoView";
 import PaginaPrincipalView from "./views/cliente/PaginaPrincipalView";
+import RestaurantesListaView from "./views/cliente/RestaurantesListaView";
+import CardapioRestauranteView from "./views/cliente/CardapioRestauranteView";
 import PagamentoView from "./views/cliente/PagamentoView";
 import HistoricoView from "./views/cliente/HistoricoView";
 
@@ -53,6 +55,7 @@ export default function App() {
   const [groupKey, setGroupKey] = useState("cliente");
   const [view, setView] = useState("inicio-categorias");
   const [orderId, setOrderId] = useState(null);
+  const [restauranteId, setRestauranteId] = useState(null);
   const [oauthErro, setOauthErro] = useState("");
 
   // Ao carregar, verifica se voltamos de um login OAuth (Google/Facebook).
@@ -78,6 +81,11 @@ export default function App() {
     setView("pedido-detalhe");
   };
 
+  const openRestaurante = (id) => {
+    setRestauranteId(id);
+    setView("cardapio-restaurante");
+  };
+
   const goTo = (key) => {
     setView(key);
     if (NAV_CLIENTE.some((n) => n.key === key) || NAV_CLIENTE_HIDDEN.some((n) => n.key === key)) setGroupKey("cliente");
@@ -91,7 +99,9 @@ export default function App() {
       case "login": return <LoginView onGo={goTo} erroInicial={oauthErro} />;
       case "cadastro-dados": return <CadastroDadosView onGo={goTo} aoCadastrar={() => goTo("cadastro-endereco")} />;
       case "cadastro-endereco": return <CadastroEnderecoView onGo={goTo} />;
-      case "pagina-principal": return <PaginaPrincipalView />;
+      case "pagina-principal": return <PaginaPrincipalView onGo={goTo} onSelectRestaurante={openRestaurante} />;
+      case "restaurantes-cliente": return <RestaurantesListaView onSelect={openRestaurante} />;
+      case "cardapio-restaurante": return <CardapioRestauranteView restauranteId={restauranteId} onBack={() => setView("restaurantes-cliente")} />;
       case "pagamento": return <PagamentoView />;
       case "historico": return <HistoricoView onOpenOrder={openOrder} />;
       case "area-parceiro": return <AreaParceiroView onGo={goTo} />;

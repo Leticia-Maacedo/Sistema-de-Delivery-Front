@@ -106,6 +106,73 @@ export const MENU_INICIAL = [
   { id: 6, nome: "Brownie com Sorvete", cat: "Sobremesas", preco: 14.9, disponivel: true },
 ];
 
+/* Cardápio de cada restaurante, agrupado por categoria — usado na tela
+   de cardápio do cliente (CardapioRestauranteView). Chave = RESTAURANTS[].id */
+export const MENUS_POR_RESTAURANTE = {
+  1: [ // Burger House
+    { categoria: "Combos", itens: [
+      { id: "1-1", nome: "Combo Burger", desc: "Burger, batata e refrigerante", preco: 29.9 },
+      { id: "1-2", nome: "Combo Duplo Bacon", desc: "Dois burgers com bacon crocante", preco: 36.9 },
+    ]},
+    { categoria: "Bebidas", itens: [
+      { id: "1-3", nome: "Refrigerante Lata", desc: "350ml, gelado", preco: 8.6 },
+      { id: "1-4", nome: "Milk-shake", desc: "Chocolate, morango ou baunilha", preco: 15.9 },
+    ]},
+  ],
+  2: [ // Sushi Lovers
+    { categoria: "Combinados", itens: [
+      { id: "2-1", nome: "Combinado 20 peças", desc: "Sashimi, hot roll e uramaki", preco: 59.9 },
+      { id: "2-2", nome: "Combinado 12 peças", desc: "Seleção do chef", preco: 39.9 },
+    ]},
+    { categoria: "Individuais", itens: [
+      { id: "2-3", nome: "Hot Roll", desc: "8 unidades, salmão empanado", preco: 24.9 },
+      { id: "2-4", nome: "Temaki Salmão", desc: "Alga, arroz e salmão fresco", preco: 22.9 },
+    ]},
+  ],
+  3: [ // Cantinho do Chef
+    { categoria: "Pratos principais", itens: [
+      { id: "3-1", nome: "Filé à Parmegiana", desc: "Acompanha arroz e batata frita", preco: 32.9 },
+      { id: "3-2", nome: "Feijoada Completa", desc: "Serve até 2 pessoas", preco: 45.0 },
+    ]},
+    { categoria: "Acompanhamentos", itens: [
+      { id: "3-3", nome: "Arroz Branco", desc: "Porção individual", preco: 6.0 },
+      { id: "3-4", nome: "Batata Frita", desc: "Porção média", preco: 7.9 },
+    ]},
+    { categoria: "Bebidas e sobremesas", itens: [
+      { id: "3-5", nome: "Suco Natural", desc: "Laranja, limão ou abacaxi", preco: 8.9 },
+      { id: "3-6", nome: "Brownie com Sorvete", desc: "Chocolate com sorvete de creme", preco: 14.9 },
+    ]},
+  ],
+  4: [ // Pizza Station
+    { categoria: "Pizzas salgadas", itens: [
+      { id: "4-1", nome: "Pizza Grande Calabresa", desc: "8 fatias", preco: 38.9 },
+      { id: "4-2", nome: "Pizza Grande Mussarela", desc: "8 fatias", preco: 34.9 },
+    ]},
+    { categoria: "Bebidas", itens: [
+      { id: "4-3", nome: "Água com Gás", desc: "500ml", preco: 4.9 },
+      { id: "4-4", nome: "Refrigerante 2L", desc: "Cola ou guaraná", preco: 12.9 },
+    ]},
+  ],
+  5: [ // Açaí da Praia
+    { categoria: "Açaí", itens: [
+      { id: "5-1", nome: "Açaí 500ml", desc: "Com granola e banana", preco: 18.9 },
+      { id: "5-2", nome: "Açaí 300ml", desc: "Com granola e leite condensado", preco: 13.9 },
+    ]},
+    { categoria: "Sorvetes", itens: [
+      { id: "5-3", nome: "Casquinha", desc: "Chocolate ou baunilha", preco: 7.9 },
+    ]},
+  ],
+  6: [ // Veggie Green
+    { categoria: "Bowls", itens: [
+      { id: "6-1", nome: "Bowl Vegano", desc: "Grão-de-bico, quinoa e legumes", preco: 27.9 },
+      { id: "6-2", nome: "Bowl Fit", desc: "Frango grelhado e batata doce", preco: 29.9 },
+    ]},
+    { categoria: "Sucos e chás", itens: [
+      { id: "6-3", nome: "Suco Detox", desc: "Couve, limão e gengibre", preco: 10.9 },
+    ]},
+  ],
+};
+
 export const REVIEWS = [
   { id: 1, cliente: "Ana Silva", nota: 5, data: "10/08/2026", comentario: "Comida chegou quentinha e no prazo, o filé estava excelente!", resposta: "Obrigado, Ana! Ficamos muito felizes 💚" },
   { id: 2, cliente: "João Pereira", nota: 4, data: "09/08/2026", comentario: "Muito bom, só achei o tempo de entrega um pouco acima do esperado.", resposta: null },
