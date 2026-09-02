@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { Truck, ArrowLeft, Search, Bell, MessageCircle } from "lucide-react";
 
 import { NAV_CLIENTE, NAV_CLIENTE_HIDDEN, NAV_PARCEIRO, NAV_ADMIN_SIDEBAR, ADMIN_TITLES } from "./data/navigation";
@@ -8,6 +8,7 @@ import InicioCategoriasView from "./views/cliente/InicioCategoriasView";
 import LoginView from "./views/cliente/LoginView";
 import CadastroDadosView from "./views/cliente/CadastroDadosView";
 import CadastroEnderecoView from "./views/cliente/CadastroEnderecoView";
+import CadastroTelefoneView from "./views/cliente/CadastroTelefoneView";
 import PaginaPrincipalView from "./views/cliente/PaginaPrincipalView";
 import RestaurantesListaView from "./views/cliente/RestaurantesListaView";
 import CardapioRestauranteView from "./views/cliente/CardapioRestauranteView";
@@ -26,7 +27,7 @@ import EntregasView from "./views/admin/EntregasView";
 import FuncionalidadesView from "./views/admin/FuncionalidadesView";
 import EmptyState from "./components/EmptyState";
 
-/* Grupo de links do header (usado pelas seções CLIENTE e PARCEIRO) */
+/* Grupo de links do header (usado pelas seÃ§Ãµes CLIENTE e PARCEIRO) */
 function NavGroup({ label, items, view, onGo }) {
   return (
     <div>
@@ -97,7 +98,8 @@ export default function App() {
     switch (view) {
       case "inicio-categorias": return <InicioCategoriasView onGo={goTo} />;
       case "login": return <LoginView onGo={goTo} erroInicial={oauthErro} />;
-      case "cadastro-dados": return <CadastroDadosView onGo={goTo} aoCadastrar={() => goTo("cadastro-endereco")} />;
+      case "cadastro-dados": return <CadastroDadosView onGo={goTo} />;
+      case "cadastro-telefone": return <CadastroTelefoneView onGo={goTo} />;
       case "cadastro-endereco": return <CadastroEnderecoView onGo={goTo} />;
       case "pagina-principal": return <PaginaPrincipalView onGo={goTo} onSelectRestaurante={openRestaurante} />;
       case "restaurantes-cliente": return <RestaurantesListaView onSelect={openRestaurante} />;
@@ -113,7 +115,7 @@ export default function App() {
       case "pedido-detalhe": return <PedidoDetalheView orderId={orderId} onBack={() => setView("pedidos")} />;
       case "entregas": return <EntregasView />;
       case "funcionalidades": return <FuncionalidadesView />;
-      default: return <EmptyState title="EM CONSTRUÇÃO" subtitle="Essa área ainda não foi implementada." />;
+      default: return <EmptyState title="EM CONSTRUÃ‡ÃƒO" subtitle="Essa Ã¡rea ainda nÃ£o foi implementada." />;
     }
   };
 
@@ -178,7 +180,7 @@ export default function App() {
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                 <div className="ef-card" style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", width: 300 }}>
                   <Search size={14} color="var(--muted)" />
-                  <input placeholder="Buscar pedidos, restaurantes, usuários..." className="ef-input" style={{ border: "none", padding: 0, background: "transparent" }} />
+                  <input placeholder="Buscar pedidos, restaurantes, usuÃ¡rios..." className="ef-input" style={{ border: "none", padding: 0, background: "transparent" }} />
                 </div>
                 <Bell size={17} color="var(--muted)" />
                 <MessageCircle size={17} color="var(--muted)" />

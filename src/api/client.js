@@ -1,39 +1,12 @@
 /**
- * Cliente de API do EntregaFood — fala com o back-end FastAPI
- * (repo: Sistema-de-Delivery-Back).
- *
- * Rotas confirmadas no back:
- *   POST   /auth/login              -> login e-mail/senha (auth_controller)
- *   GET    /auth/eu                 -> usuário logado (rota protegida)
- *   GET    /auth/google/login       -> inicia OAuth Google   (oauth_controller)
- *   GET    /auth/google/callback    -> volta do Google
- *   GET    /auth/facebook/login     -> inicia OAuth Facebook
- *   GET    /auth/facebook/callback  -> volta do Facebook
- *   POST   /usuarios                -> cadastro (usuario_controller, RF01)
- *   GET    /usuarios /usuarios/:id  -> listar / consultar
- *   PUT    /usuarios/:id            -> atualizar
- *   DELETE /usuarios/:id            -> encerrar conta (RF06)
- *
- * Fluxo OAuth:
- * 1. Botão redireciona pra GET {API_URL}/auth/{provider}/login.
- * 2. Back-end (Authlib) troca com o provedor e volta pro callback dele mesmo.
- * 3. oauth_controller redireciona pro front como QUERY STRING (não hash!):
- *      sucesso -> {FRONTEND_URL}/?oauth_token=<jwt>
- *      erro    -> {FRONTEND_URL}/?oauth_erro=<mensagem>
- * 4. App.jsx lê isso na primeira renderização, salva o token e limpa a URL.
+ * Cliente de API do EntregaFood.
  */
 
 const API_URL =
   import.meta.env.VITE_API_URL ||
   "https://entregafood-back-dev.onrender.com";
-  
-const TOKEN_KEY = "entregafood_token";
 
-/* ------------------------------------------------------------------ */
-/* Erro de API — algumas telas usam "instanceof ApiError" pra distinguir */
-/* um erro de validação/negócio (back respondeu, mas com erro) de uma    */
-/* falha de rede/servidor fora do ar.                                   */
-/* ------------------------------------------------------------------ */
+const TOKEN_KEY = "entregafood_token";
 
 export class ApiError extends Error {
   constructor(message, status, detail) {
@@ -44,13 +17,11 @@ export class ApiError extends Error {
   }
 }
 
-/* ------------------------------------------------------------------ */
-/* Fetch genérico                                                       */
-/* ------------------------------------------------------------------ */
-
 export async function apiFetch(path, options = {}) {
   const token = getToken();
+
   let res;
+
   try {
     res = await fetch(`${API_URL}${path}`, {
       ...options,
@@ -61,26 +32,31 @@ export async function apiFetch(path, options = {}) {
       },
     });
   } catch (erroDeRede) {
-    // back-end fora do ar, sem CORS, sem internet etc — não é ApiError,
-    // é falha de conexão mesmo (útil pro "e instanceof ApiError" das telas).
     throw erroDeRede;
   }
 
   if (!res.ok) {
     const erro = await res.json().catch(() => ({}));
-    // FastAPI/Pydantic manda erro de validação (422) como lista em "detail"
+
     const detalhe = Array.isArray(erro.detail)
       ? erro.detail.map((d) => d.msg).join(" ")
       : erro.detail;
-    throw new ApiError(detalhe || `Erro ${res.status} ao chamar ${path}`, res.status, erro.detail);
+
+    throw new ApiError(
+      detalhe || `Erro ${res.status} ao chamar ${path}`,
+      res.status,
+      erro.detail
+    );
   }
+
   if (res.status === 204) return null;
+
   return res.json();
 }
 
-/* ------------------------------------------------------------------ */
-/* OAuth (Google / Facebook)                                            */
-/* ------------------------------------------------------------------ */
+/* =========================================================
+   GOOGLE / FACEBOOK
+   ========================================================= */
 
 export function getGoogleLoginUrl() {
   return `${API_URL}/auth/google`;
@@ -98,11 +74,6 @@ export function loginWithFacebook() {
   window.location.href = getFacebookLoginUrl();
 }
 
-/**
- * Lê ?oauth_token=... ou ?oauth_erro=... da URL (retorno do back-end),
- * salva o token se houver, e limpa a query string sem recarregar a página.
- * Retorna { token, erro }.
- */
 export function consumeOAuthResultFromQuery() {
   const queryParams = new URLSearchParams(window.location.search);
 
@@ -118,67 +89,184 @@ export function consumeOAuthResultFromQuery() {
   }
 
   if (token || erro) {
-    if (token) saveToken(token);
+    if (token) {
+      saveToken(token);
+    }
 
-    window.history.replaceState(
-      {},
-      "",
-      window.location.pathname
-    );
+    window.history.replaceState({}, "", window.location.pathname);
   }
 
   return { token, erro };
 }
 
-/* ------------------------------------------------------------------ */
-/* Autenticação por e-mail/senha                                        */
-/* ------------------------------------------------------------------ */
+/* =========================================================
+   LOGIN E-MAIL OU TELEFONE + SENHA
+   ========================================================= */
 
-/** POST /auth/login — devolve { access_token, token_type, usuario } */
-export async function loginWithPassword(email, senha) {
+export async function loginWithPassword(identificador, senha) {
+  const valor = identificador.trim();
+
+  const body = valor.includes("@")
+    ? { email: valor, senha }
+    : { telefone: valor, senha };
+
   const data = await apiFetch("/auth/login", {
     method: "POST",
-    body: JSON.stringify({ email, senha }),
+    body: JSON.stringify(body),
   });
-  saveToken(data.access_token);
+
+  if (data.access_token) {
+    saveToken(data.access_token);
+  }
+
   return data;
 }
 
-/** GET /auth/eu — rota protegida, dados do usuário logado */
+/* =========================================================
+   LOGIN POR TELEFONE + OTP
+   ========================================================= */
+
+export async function solicitarCodigoLoginTelefone(telefone) {
+  return apiFetch("/auth/telefone/solicitar-codigo", {
+    method: "POST",
+    body: JSON.stringify({
+      telefone,
+    }),
+  });
+}
+
+export async function verificarCodigoLoginTelefone(telefone, codigo) {
+  const data = await apiFetch("/auth/telefone/verificar-codigo", {
+    method: "POST",
+    body: JSON.stringify({
+      telefone,
+      codigo,
+    }),
+  });
+
+  if (data.access_token) {
+    saveToken(data.access_token);
+  }
+
+  return data;
+}
+
+/* =========================================================
+   CADASTRO POR TELEFONE + OTP
+   ========================================================= */
+
+export async function solicitarCodigoCadastroTelefone({
+  nome,
+  telefone,
+  senha,
+  tipo = "cliente",
+}) {
+  return apiFetch("/auth/telefone/cadastro/solicitar-codigo", {
+    method: "POST",
+    body: JSON.stringify({
+      nome,
+      telefone,
+      senha,
+      tipo,
+    }),
+  });
+}
+
+export async function confirmarCadastroTelefone({
+  nome,
+  telefone,
+  senha,
+  codigo,
+  tipo = "cliente",
+}) {
+  const usuario = await apiFetch("/auth/telefone/cadastro/confirmar", {
+    method: "POST",
+    body: JSON.stringify({
+      nome,
+      telefone,
+      senha,
+      codigo,
+      tipo,
+    }),
+  });
+
+  /*
+   * O endpoint de confirmação do cadastro cria o usuário,
+   * mas não necessariamente devolve um JWT.
+   *
+   * Por isso, depois de confirmar o OTP, fazemos o login
+   * automaticamente usando telefone + senha.
+   *
+   * loginWithPassword salva o access_token no localStorage.
+   */
+  await loginWithPassword(telefone, senha);
+
+  return usuario;
+}
+
+/* =========================================================
+   USUÁRIO LOGADO
+   ========================================================= */
+
 export async function fetchUsuarioLogado() {
-  if (!getToken()) return null;
+  if (!getToken()) {
+    return null;
+  }
+
   try {
     return await apiFetch("/auth/eu");
-  } catch {
-    logout();
+  } catch (error) {
+    console.error("Erro ao buscar usuário logado:", error);
+
+    if (error instanceof ApiError && error.status === 401) {
+      logout();
+    }
+
     return null;
   }
 }
 
-/* ------------------------------------------------------------------ */
-/* Cadastro de usuário (POST /usuarios)                                 */
-/* ------------------------------------------------------------------ */
+/* =========================================================
+   CRUD USUÁRIO
+   ========================================================= */
 
-/**
- * Cadastra o usuário (nome, email, senha, telefone, tipo) e, em seguida,
- * já faz login com a mesma senha — o back não devolve token no cadastro,
- * só o usuário criado (201), então logamos logo depois pra já ter o JWT.
- *
- * tipo: "cliente" | "restaurante" | "entregador" | "admin" (default "cliente")
- */
-export async function registerUsuario({ nome, email, senha, telefone, tipo = "cliente" }) {
+export async function registerUsuario({
+  nome,
+  email,
+  senha,
+  telefone,
+  tipo = "cliente",
+}) {
   await apiFetch("/usuarios", {
     method: "POST",
-    body: JSON.stringify({ nome, email, senha, telefone, tipo }),
+    body: JSON.stringify({
+      nome,
+      email,
+      senha,
+      telefone,
+      tipo,
+    }),
   });
-  return loginWithPassword(email, senha);
+
+  const identificador = email || telefone;
+
+  return loginWithPassword(identificador, senha);
 }
 
-export async function listarUsuarios({ tipo, limite = 100, pular = 0 } = {}) {
+export async function listarUsuarios({
+  tipo,
+  limite = 100,
+  pular = 0,
+} = {}) {
   const params = new URLSearchParams();
-  if (tipo) params.set("tipo", tipo);
+
+  if (tipo) {
+    params.set("tipo", tipo);
+  }
+
   params.set("limite", limite);
   params.set("pular", pular);
+
   return apiFetch(`/usuarios?${params.toString()}`);
 }
 
@@ -187,30 +275,80 @@ export async function obterUsuario(id) {
 }
 
 export async function atualizarUsuario(id, dados) {
-  return apiFetch(`/usuarios/${id}`, { method: "PUT", body: JSON.stringify(dados) });
+  return apiFetch(`/usuarios/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(dados),
+  });
 }
 
 export async function removerUsuario(id) {
-  return apiFetch(`/usuarios/${id}`, { method: "DELETE" });
+  return apiFetch(`/usuarios/${id}`, {
+    method: "DELETE",
+  });
 }
 
-/**
- * Mesmas operações acima, só que agrupadas num namespace — algumas telas
- * (ex: CadastroDadosView) importam assim: `usuarios.criar(...)`.
- * POST /usuarios só cria a conta, não loga automaticamente — se quiser
- * logar em seguida, chame loginWithPassword(email, senha) depois.
- */
 export const usuarios = {
-  criar: (dados) => apiFetch("/usuarios", { method: "POST", body: JSON.stringify(dados) }),
+  criar: (dados) =>
+    apiFetch("/usuarios", {
+      method: "POST",
+      body: JSON.stringify(dados),
+    }),
+
   listar: listarUsuarios,
   obter: obterUsuario,
   atualizar: atualizarUsuario,
   remover: removerUsuario,
 };
 
-/* ------------------------------------------------------------------ */
-/* Token (localStorage)                                                 */
-/* ------------------------------------------------------------------ */
+/* =========================================================
+   CRUD LOCAL / ENDEREÇO
+   ========================================================= */
+
+export async function criarLocal(dados) {
+  return apiFetch("/locais", {
+    method: "POST",
+    body: JSON.stringify(dados),
+  });
+}
+
+export async function listarLocais(usuarioId = null) {
+  if (usuarioId) {
+    return apiFetch(
+      `/locais?usuario_id=${encodeURIComponent(usuarioId)}`
+    );
+  }
+
+  return apiFetch("/locais");
+}
+
+export async function obterLocal(id) {
+  return apiFetch(`/locais/${id}`);
+}
+
+export async function atualizarLocal(id, dados) {
+  return apiFetch(`/locais/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(dados),
+  });
+}
+
+export async function removerLocal(id) {
+  return apiFetch(`/locais/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export const locais = {
+  criar: criarLocal,
+  listar: listarLocais,
+  obter: obterLocal,
+  atualizar: atualizarLocal,
+  remover: removerLocal,
+};
+
+/* =========================================================
+   TOKEN
+   ========================================================= */
 
 export function saveToken(token) {
   localStorage.setItem(TOKEN_KEY, token);
