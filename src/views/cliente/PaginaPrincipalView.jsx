@@ -47,7 +47,7 @@ export default function PaginaPrincipalView({ onGo, onSelectRestaurante }) {
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginTop: 10 }}>
           {RESTAURANTS.slice(0, 3).map((r) => (
-            <div key={r.id} onClick={() => onSelectRestaurante?.(r.id)} className="ef-card" style={{ overflow: "hidden", cursor: "pointer" }}>
+            <div key={r.id} onClick={() => onSelectRestaurante?.(r.id)} className="ef-card ef-card-hover" style={{ overflow: "hidden", cursor: "pointer" }}>
               <div style={{ height: 90, background: "var(--panel)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <r.Icon size={30} color="var(--accent)" />
               </div>
