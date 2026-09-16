@@ -256,6 +256,32 @@ export const locais = {
 };
 
 /* ------------------------------------------------------------------ */
+/* Restaurantes (/restaurantes)                                         */
+/* ------------------------------------------------------------------ */
+
+export const restaurantes = {
+  criar: (dados) => apiFetch("/restaurantes", { method: "POST", body: JSON.stringify(dados) }),
+  listar: ({ limite = 100, pular = 0 } = {}) =>
+    apiFetch(`/restaurantes?limite=${limite}&pular=${pular}`),
+  obter: (id) => apiFetch(`/restaurantes/${id}`),
+  atualizar: (id, dados) => apiFetch(`/restaurantes/${id}`, { method: "PUT", body: JSON.stringify(dados) }),
+  remover: (id) => apiFetch(`/restaurantes/${id}`, { method: "DELETE" }),
+};
+
+/* ------------------------------------------------------------------ */
+/* Produtos (/produtos)                                                 */
+/* ------------------------------------------------------------------ */
+
+export const produtos = {
+  criar: (dados) => apiFetch("/produtos", { method: "POST", body: JSON.stringify(dados) }),
+  listar: (restauranteId) =>
+    apiFetch(restauranteId ? `/produtos?restaurante_id=${restauranteId}` : "/produtos"),
+  obter: (id) => apiFetch(`/produtos/${id}`),
+  atualizar: (id, dados) => apiFetch(`/produtos/${id}`, { method: "PUT", body: JSON.stringify(dados) }),
+  remover: (id) => apiFetch(`/produtos/${id}`, { method: "DELETE" }),
+};
+
+/* ------------------------------------------------------------------ */
 /* Token + usuário em cache (localStorage)                              */
 /* ------------------------------------------------------------------ */
 
@@ -291,4 +317,30 @@ export function getUsuarioId() {
 export function logout() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USUARIO_KEY);
+  localStorage.removeItem(RESTAURANTE_KEY);
+}
+
+/* ------------------------------------------------------------------ */
+/* "Restaurante ativo" em cache — qual restaurante o parceiro logado    */
+/* está gerenciando agora. Necessário porque nem Restaurante nem        */
+/* Produto exigem usuário logado (é tudo por id explícito), então o     */
+/* front precisa lembrar sozinho qual foi criado/selecionado.           */
+/* ------------------------------------------------------------------ */
+
+const RESTAURANTE_KEY = "entregafood_restaurante";
+
+export function saveRestauranteAtivo(restaurante) {
+  localStorage.setItem(RESTAURANTE_KEY, JSON.stringify(restaurante));
+}
+
+export function getRestauranteAtivo() {
+  try {
+    return JSON.parse(localStorage.getItem(RESTAURANTE_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+
+export function getRestauranteAtivoId() {
+  return getRestauranteAtivo()?.id ?? null;
 }
