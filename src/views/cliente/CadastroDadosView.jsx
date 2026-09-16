@@ -2,7 +2,7 @@ import { useState } from "react";
 import { UserPlus } from "lucide-react";
 import PageHeader from "../../components/PageHeader";
 import Field from "../../components/Field";
-import { usuarios, ApiError } from "../../api/client";
+import { usuarios, loginWithPassword, ApiError } from "../../api/client";
 
 const TIPOS_DE_CONTA = [
   { valor: "cliente", label: "Cliente" },
@@ -29,6 +29,10 @@ export default function CadastroDadosView({ onGo, aoCadastrar }) {
     setCarregando(true);
     try {
       await usuarios.criar({ nome, email, senha, tipo });
+      // POST /usuarios não devolve token, só o usuário criado — loga em
+      // seguida com a mesma senha pra já ter o JWT nas próximas telas
+      // (ex: cadastro de endereço, que exige usuário autenticado).
+      await loginWithPassword(email, senha);
       aoCadastrar?.();
     } catch (e) {
       setErro(e instanceof ApiError ? e.message : "Não foi possível conectar ao servidor.");

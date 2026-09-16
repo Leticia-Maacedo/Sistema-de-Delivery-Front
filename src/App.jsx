@@ -1,14 +1,18 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { Truck, ArrowLeft, Search, Bell, MessageCircle } from "lucide-react";
 
 import { NAV_CLIENTE, NAV_CLIENTE_HIDDEN, NAV_PARCEIRO, NAV_ADMIN_SIDEBAR, ADMIN_TITLES } from "./data/navigation";
 import { consumeOAuthResultFromQuery, isLoggedIn } from "./api/client";
+import ClientSidebar from "./components/ClientSidebar";
+import SystemStatus from "./components/SystemStatus";
 
 import InicioCategoriasView from "./views/cliente/InicioCategoriasView";
 import LoginView from "./views/cliente/LoginView";
 import CadastroDadosView from "./views/cliente/CadastroDadosView";
 import CadastroEnderecoView from "./views/cliente/CadastroEnderecoView";
 import PaginaPrincipalView from "./views/cliente/PaginaPrincipalView";
+import RestaurantesListaView from "./views/cliente/RestaurantesListaView";
+import CardapioRestauranteView from "./views/cliente/CardapioRestauranteView";
 import PagamentoView from "./views/cliente/PagamentoView";
 import HistoricoView from "./views/cliente/HistoricoView";
 
@@ -24,35 +28,11 @@ import EntregasView from "./views/admin/EntregasView";
 import FuncionalidadesView from "./views/admin/FuncionalidadesView";
 import EmptyState from "./components/EmptyState";
 
-/* Grupo de links do header (usado pelas seções CLIENTE e PARCEIRO) */
-function NavGroup({ label, items, view, onGo }) {
-  return (
-    <div>
-      <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 10, color: "var(--muted)", letterSpacing: 1, marginBottom: 4 }}>
-        {label}
-      </div>
-      <div style={{ display: "flex", gap: 18 }}>
-        {items.map((n) => (
-          <span
-            key={n.key}
-            onClick={() => onGo(n.key)}
-            style={{
-              fontFamily: "'Exo 2', sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer",
-              color: view === n.key ? "var(--accent)" : "#d8d8d8",
-            }}
-          >
-            {n.label}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export default function App() {
   const [groupKey, setGroupKey] = useState("cliente");
   const [view, setView] = useState("inicio-categorias");
   const [orderId, setOrderId] = useState(null);
+  const [restauranteId, setRestauranteId] = useState(null);
   const [oauthErro, setOauthErro] = useState("");
 
   // Ao carregar, verifica se voltamos de um login OAuth (Google/Facebook).
@@ -78,6 +58,11 @@ export default function App() {
     setView("pedido-detalhe");
   };
 
+  const openRestaurante = (id) => {
+    setRestauranteId(id);
+    setView("cardapio-restaurante");
+  };
+
   const goTo = (key) => {
     setView(key);
     if (NAV_CLIENTE.some((n) => n.key === key) || NAV_CLIENTE_HIDDEN.some((n) => n.key === key)) setGroupKey("cliente");
@@ -91,7 +76,9 @@ export default function App() {
       case "login": return <LoginView onGo={goTo} erroInicial={oauthErro} />;
       case "cadastro-dados": return <CadastroDadosView onGo={goTo} aoCadastrar={() => goTo("cadastro-endereco")} />;
       case "cadastro-endereco": return <CadastroEnderecoView onGo={goTo} />;
-      case "pagina-principal": return <PaginaPrincipalView />;
+      case "pagina-principal": return <PaginaPrincipalView onGo={goTo} onSelectRestaurante={openRestaurante} />;
+      case "restaurantes-cliente": return <RestaurantesListaView onSelect={openRestaurante} />;
+      case "cardapio-restaurante": return <CardapioRestauranteView restauranteId={restauranteId} onBack={() => setView("restaurantes-cliente")} />;
       case "pagamento": return <PagamentoView />;
       case "historico": return <HistoricoView onOpenOrder={openOrder} />;
       case "area-parceiro": return <AreaParceiroView onGo={goTo} />;
@@ -111,23 +98,9 @@ export default function App() {
   const adminTitle = ADMIN_TITLES[view] || ADMIN_TITLES.dashboard;
 
   return (
-    <div style={{ minHeight: "100vh" }}>
-      {!isAdmin && (
-        <header style={{ borderBottom: "1px solid var(--border)", background: "var(--panel)" }}>
-          <div style={{ maxWidth: 1200, margin: "0 auto", padding: "16px 24px" }}>
-            <div className="ef-logo" style={{ fontSize: 17 }}>
-              ENTREGA<span style={{ color: "var(--accent)" }}>FOOD</span>
-            </div>
-          </div>
-          <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px 12px", display: "flex", gap: 28, flexWrap: "wrap" }}>
-            <NavGroup label="CLIENTE" items={NAV_CLIENTE} view={view} onGo={goTo} />
-            <NavGroup label="PARCEIRO" items={NAV_PARCEIRO} view={view} onGo={goTo} />
-          </div>
-        </header>
-      )}
-
+    <div style={{ display: "flex", minHeight: "100vh" }}>
       {isAdmin ? (
-        <div style={{ display: "flex" }}>
+        <>
           <aside
             style={{
               width: 224, background: "var(--panel)", borderRight: "1px solid var(--border)",
@@ -183,9 +156,15 @@ export default function App() {
             </div>
             <div style={{ padding: "24px 28px" }}>{renderView()}</div>
           </main>
-        </div>
+        </>
       ) : (
-        <main style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px" }}>{renderView()}</main>
+        <>
+          <ClientSidebar view={view} onGo={goTo} />
+          <main style={{ flex: 1, position: "relative", padding: "28px 32px" }}>
+            {renderView()}
+            <SystemStatus />
+          </main>
+        </>
       )}
     </div>
   );
