@@ -41,9 +41,19 @@ olhando em qual dos arrays de navegação (`NAV_CLIENTE`, `NAV_PARCEIRO`,
 pra compartilhar uma URL de uma tela específica), não existe botão
 "voltar" do navegador funcional, e navegar entre telas não passa parâmetros
 pela URL — passa por **props e callbacks** (`onGo`, `onSelect`,
-`onOpenOrder`, etc.) e por dois pedaços de estado no topo do `App`:
-`orderId` e `restauranteId`, usados para dizer à tela de destino *qual*
-pedido/restaurante abrir.
+`onOpenOrder`, etc.) e por pedaços de estado no topo do `App`: `orderId`,
+`restauranteId`, `produtoId` e `editRestauranteId`, usados para dizer à
+tela de destino *qual* pedido/restaurante/produto abrir (ou, no último
+caso, se `cadastro-restaurante` deve abrir em modo criação ou edição).
+
+O **carrinho** (`carrinho`, um objeto `{ produtoId: quantidade }`) também
+mora no `App.jsx`, não dentro de uma tela — de propósito: tanto
+`CardapioRestauranteView` quanto `ProdutoDetalheView` (ver
+`docs/TELAS_E_COMPONENTES.md`) precisam ler e alterar o mesmo carrinho
+enquanto o usuário navega entre as duas, o que não seria possível se cada
+uma guardasse seu próprio `useState`. `adicionarAoCarrinho`/
+`removerDoCarrinho` (definidas no `App.jsx`) são passadas como props para
+as duas telas.
 
 ```jsx
 const openRestaurante = (id) => {
@@ -150,11 +160,15 @@ Google Maps Geocoding API como substituta mais robusta (paga, com chave).
 Nem toda tela está integrada com a API de verdade ainda. `src/data/mockData.js`
 contém pedidos, restaurantes e estilos de status **fictícios**, usados pelas
 telas que ainda simulam o backend (ex.: dashboard/pedidos do admin,
-histórico do cliente). Telas como `UsuariosView` (admin) e `RestaurantesView`
-(admin) **já foram migradas** para chamar `api/client.js` de verdade (ver
-commits recentes "integra CRUD de restaurantes com a API"). Ao mexer numa
-tela, confira se ela importa de `../../data/mockData` (ainda mock) ou de
-`../../api/client` (já real) antes de assumir de onde os dados vêm.
+histórico e pagamento do cliente). Boa parte do fluxo principal do cliente
+já foi migrada para a API real: `RestaurantesListaView` e
+`CardapioRestauranteView` (cliente) chamam `consultas.*` (que fala com
+`GET /consultas/restaurantes*` no backend), e a nova `ProdutoDetalheView`
+chama `produtos.obter`. No admin, `RestaurantesView` também já usa
+`restaurantes.*` de verdade. Ao mexer numa tela, confira se ela importa de
+`../../data/mockData` (ainda mock) ou de `../../api/client` (já real) antes
+de assumir de onde os dados vêm — o catálogo tela a tela em
+`docs/TELAS_E_COMPONENTES.md` mantém isso atualizado.
 
 ## 7. Estilo visual
 
@@ -198,5 +212,26 @@ Vale a pena qualquer um que mexer nestas áreas saber disso de antemão:
   do menu admin cai no `default` do switch (`EmptyState` "EM CONSTRUÇÃO").
   Isso é esperado hoje, não um bug — mas é fácil confundir com "a tela
   sumiu" se você não souber que o roteamento é manual.
+- **`src/views/parceiro/CardapioRestauranteView.jsx` está morto.** Fazia o
+  mesmo papel (cadastrar/editar o restaurante do parceiro) que a nova
+  `src/views/parceiro/CadastroRestauranteView.jsx` faz hoje — só a segunda
+  foi importada em `App.jsx` e ligada à rota `cadastro-restaurante`. A
+  primeira continua no repositório, sem nenhum import apontando pra ela;
+  ao mexer no cadastro de restaurante do parceiro, confirme que está no
+  arquivo certo (`CadastroRestauranteView.jsx`).
+- **Mismatch de maiúsculas no nome de um arquivo.** `App.jsx` importa
+  `import ProdutoDetalheView from "./views/cliente/ProdutoDetalheView"`,
+  mas o arquivo em disco se chama `Produtodetalheview.jsx` (letras "d" e
+  "v" minúsculas). Funciona no Windows e no macOS (sistema de arquivos não
+  diferencia maiúsculas de minúsculas por padrão), mas **quebra em CI/deploy
+  Linux** (case-sensitive) com um erro de módulo não encontrado. Vale
+  renomear o arquivo para `ProdutoDetalheView.jsx` assim que possível.
+- **`ViewToggle` e `Pagination` (componentes) estão sem nenhum uso.**
+  `RestaurantesListaView` era o único consumidor de ambos; na migração
+  dessa tela de dado mockado para `consultas.restaurantes` (ver §6), a
+  alternância grade/lista e a paginação local foram removidas junto (a
+  paginação agora, se existir, seria do backend). Os dois componentes
+  continuam em `src/components/`, prontos pra reuso, mas hoje não são
+  importados em lugar nenhum.
 - **Mistura mock/API real** (ver §6) — não assuma que todo dado exibido vem
   do backend.
