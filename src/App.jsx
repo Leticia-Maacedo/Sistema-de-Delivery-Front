@@ -13,10 +13,12 @@ import CadastroEnderecoView from "./views/cliente/CadastroEnderecoView";
 import PaginaPrincipalView from "./views/cliente/PaginaPrincipalView";
 import RestaurantesListaView from "./views/cliente/RestaurantesListaView";
 import CardapioRestauranteView from "./views/cliente/CardapioRestauranteView";
+import ProdutoDetalheView from "./views/cliente/ProdutoDetalheView";
 import PagamentoView from "./views/cliente/PagamentoView";
 import HistoricoView from "./views/cliente/HistoricoView";
 
 import AreaParceiroView from "./views/parceiro/AreaParceiroView";
+import CadastroRestauranteView from "./views/parceiro/CadastroRestauranteView";
 import CardapiosView from "./views/parceiro/CardapiosView";
 import AvaliacoesView from "./views/parceiro/AvaliacoesView";
 
@@ -33,7 +35,26 @@ export default function App() {
   const [view, setView] = useState("inicio-categorias");
   const [orderId, setOrderId] = useState(null);
   const [restauranteId, setRestauranteId] = useState(null);
+  const [editRestauranteId, setEditRestauranteId] = useState(null);
+  const [produtoId, setProdutoId] = useState(null);
   const [oauthErro, setOauthErro] = useState("");
+
+  // Carrinho do cliente: { produtoId: quantidade }. Fica aqui (não dentro
+  // de CardapioRestauranteView) porque a tela de detalhes do produto
+  // precisa ler/alterar o mesmo carrinho quando o usuário navega pra lá
+  // e volta — se ficasse só no estado local da tela de cardápio, ele
+  // seria perdido a cada troca de tela.
+  const [carrinho, setCarrinho] = useState({});
+
+  const adicionarAoCarrinho = (id) => setCarrinho((c) => ({ ...c, [id]: (c[id] || 0) + 1 }));
+  const removerDoCarrinho = (id) =>
+    setCarrinho((c) => {
+      const atual = (c[id] || 0) - 1;
+      const novo = { ...c };
+      if (atual <= 0) delete novo[id];
+      else novo[id] = atual;
+      return novo;
+    });
 
   // Ao carregar, verifica se voltamos de um login OAuth (Google/Facebook).
   // O oauth_controller redireciona para "/?oauth_token=<jwt>" (sucesso)
@@ -63,7 +84,24 @@ export default function App() {
     setView("cardapio-restaurante");
   };
 
+  const openProdutoDetalhe = (id) => {
+    setProdutoId(id);
+    setView("produto-detalhe");
+  };
+
+  // Abre o formulário de restaurante em modo edição (id existente) —
+  // usado pelo botão "Editar" na Área do Parceiro. Pra modo criação,
+  // basta goTo("cadastro-restaurante") direto, sem passar por aqui.
+  const editarRestaurante = (id) => {
+    setEditRestauranteId(id);
+    setView("cadastro-restaurante");
+  };
+
   const goTo = (key) => {
+    // Zera o id de edição sempre que se navega por aqui — evita que um
+    // "cadastro-restaurante" acessado direto do menu abra em modo edição
+    // por acidente, com o id de uma navegação anterior.
+    if (key === "cadastro-restaurante") setEditRestauranteId(null);
     setView(key);
     if (NAV_CLIENTE.some((n) => n.key === key) || NAV_CLIENTE_HIDDEN.some((n) => n.key === key)) setGroupKey("cliente");
     else if (NAV_PARCEIRO.some((n) => n.key === key)) setGroupKey("parceiro");
@@ -78,11 +116,32 @@ export default function App() {
       case "cadastro-endereco": return <CadastroEnderecoView onGo={goTo} />;
       case "pagina-principal": return <PaginaPrincipalView onGo={goTo} onSelectRestaurante={openRestaurante} />;
       case "restaurantes-cliente": return <RestaurantesListaView onSelect={openRestaurante} />;
-      case "cardapio-restaurante": return <CardapioRestauranteView restauranteId={restauranteId} onBack={() => setView("restaurantes-cliente")} />;
+      case "cardapio-restaurante":
+        return (
+          <CardapioRestauranteView
+            restauranteId={restauranteId}
+            onBack={() => setView("restaurantes-cliente")}
+            onSelectProduto={openProdutoDetalhe}
+            carrinho={carrinho}
+            onAdicionar={adicionarAoCarrinho}
+            onRemover={removerDoCarrinho}
+          />
+        );
+      case "produto-detalhe":
+        return (
+          <ProdutoDetalheView
+            produtoId={produtoId}
+            onBack={() => setView("cardapio-restaurante")}
+            carrinho={carrinho}
+            onAdicionar={adicionarAoCarrinho}
+            onRemover={removerDoCarrinho}
+          />
+        );
       case "pagamento": return <PagamentoView />;
       case "historico": return <HistoricoView onOpenOrder={openOrder} />;
-      case "area-parceiro": return <AreaParceiroView onGo={goTo} />;
-      case "cardapios": return <CardapiosView />;
+      case "area-parceiro": return <AreaParceiroView onGo={goTo} onEditRestaurante={editarRestaurante} />;
+      case "cadastro-restaurante": return <CadastroRestauranteView restauranteId={editRestauranteId} onGo={goTo} />;
+      case "cardapios": return <CardapiosView onGo={goTo} />;
       case "avaliacoes": return <AvaliacoesView />;
       case "dashboard": return <DashboardView onOpenOrder={openOrder} />;
       case "restaurantes": return <RestaurantesView />;
