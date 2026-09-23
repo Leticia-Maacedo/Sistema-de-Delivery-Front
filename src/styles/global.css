@@ -29,6 +29,15 @@ html, body, #root {
   border-radius: 14px;
 }
 
+.ef-card-hover {
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+.ef-card-hover:hover {
+  border-color: var(--accent2);
+  box-shadow: 0 0 0 1px var(--accent2), 0 8px 20px rgba(139, 124, 246, 0.15);
+  transform: translateY(-2px);
+}
+
 .ef-logo {
   font-family: 'Press Start 2P', monospace;
   color: #fff;

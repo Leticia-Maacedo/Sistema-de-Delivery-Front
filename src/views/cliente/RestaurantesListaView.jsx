@@ -1,9 +1,13 @@
 import React, { useState, useMemo } from "react";
-import { Search, Filter, Star, Clock, ChevronRight } from "lucide-react";
+import { Store, Star, Clock, ChevronRight } from "lucide-react";
 import EmptyState from "../../components/EmptyState";
 import PageHeader from "../../components/PageHeader";
+import ClientTopBar from "../../components/ClientTopBar";
+import ViewToggle from "../../components/ViewToggle";
+import Pagination from "../../components/Pagination";
 import { RESTAURANTS, fmt } from "../../data/mockData";
-import { Store } from "lucide-react";
+
+const POR_PAGINA = 3;
 
 /**
  * Tela de listagem/busca de restaurantes — cliente.
@@ -12,6 +16,8 @@ import { Store } from "lucide-react";
 export default function RestaurantesListaView({ onSelect }) {
   const [q, setQ] = useState("");
   const [ordenar, setOrdenar] = useState("relevancia");
+  const [modo, setModo] = useState("grid");
+  const [pagina, setPagina] = useState(1);
 
   const filtrados = useMemo(() => {
     let lista = RESTAURANTS.filter(
@@ -22,63 +28,79 @@ export default function RestaurantesListaView({ onSelect }) {
     return lista;
   }, [q, ordenar]);
 
-  return (
-    <div style={{ maxWidth: 900, margin: "0 auto", display: "flex", flexDirection: "column", gap: 18 }}>
-      <PageHeader Icon={Store} title="RESTAURANTES" subtitle="Encontre o restaurante ideal pra você" />
+  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / POR_PAGINA));
+  const pagAtual = Math.min(pagina, totalPaginas);
+  const visiveis = filtrados.slice((pagAtual - 1) * POR_PAGINA, pagAtual * POR_PAGINA);
 
-      <div style={{ display: "flex", gap: 10 }}>
-        <div className="ef-card" style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, padding: "12px 16px" }}>
-          <Search size={16} color="var(--muted)" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar por nome ou tipo de cozinha..."
-            className="ef-input"
-            style={{ border: "none", padding: 0, flex: 1, background: "transparent" }}
-          />
-        </div>
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16 }}>
+        <PageHeader Icon={Store} title="RESTAURANTES" subtitle="Encontre o restaurante ideal pra você" />
+        <ClientTopBar
+          searchValue={q}
+          onSearchChange={(v) => { setQ(v); setPagina(1); }}
+          placeholder="Buscar por nome ou tipo de cozinha..."
+          notifCount={3}
+        />
       </div>
 
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <Filter size={14} color="var(--muted)" />
-        <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 11, color: "var(--muted)" }}>Ordenar por:</span>
-        {[
-          { key: "relevancia", label: "Relevância" },
-          { key: "avaliacao", label: "Melhor avaliação" },
-          { key: "entrega", label: "Menor tempo" },
-        ].map((o) => (
-          <button
-            key={o.key}
-            onClick={() => setOrdenar(o.key)}
-            style={{
-              padding: "6px 12px", borderRadius: 20, cursor: "pointer", fontFamily: "'Exo 2', sans-serif", fontSize: 11,
-              border: `1px solid ${ordenar === o.key ? "var(--accent)" : "var(--border)"}`,
-              background: ordenar === o.key ? "var(--hover)" : "transparent",
-              color: ordenar === o.key ? "var(--accent)" : "#d8d8d8",
-            }}
-          >
-            {o.label}
-          </button>
-        ))}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 11, color: "var(--muted)" }}>ORDENAR POR:</span>
+          {[
+            { key: "relevancia", label: "Relevância" },
+            { key: "avaliacao", label: "Melhor avaliação" },
+            { key: "entrega", label: "Menor tempo" },
+          ].map((o) => (
+            <button
+              key={o.key}
+              onClick={() => setOrdenar(o.key)}
+              style={{
+                padding: "7px 14px", borderRadius: 20, cursor: "pointer", fontFamily: "'Exo 2', sans-serif",
+                fontWeight: 600, fontSize: 11,
+                border: `1px solid ${ordenar === o.key ? "var(--accent)" : "var(--border)"}`,
+                background: ordenar === o.key ? "var(--hover)" : "transparent",
+                color: ordenar === o.key ? "var(--accent)" : "#d8d8d8",
+              }}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+        <ViewToggle view={modo} onChange={setModo} />
       </div>
 
       {filtrados.length === 0 ? (
         <EmptyState title="NENHUM RESTAURANTE ENCONTRADO" subtitle="Tente buscar por outro nome ou tipo de cozinha." />
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
-          {filtrados.map((r) => (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: modo === "grid" ? "repeat(3, 1fr)" : "1fr",
+            gap: 16,
+          }}
+        >
+          {visiveis.map((r) => (
             <div
               key={r.id}
               onClick={() => onSelect(r.id)}
-              className="ef-card"
-              style={{ padding: 0, overflow: "hidden", cursor: "pointer" }}
+              className="ef-card ef-card-hover"
+              style={{
+                padding: 16, cursor: "pointer", display: "flex",
+                flexDirection: modo === "grid" ? "column" : "row",
+                gap: 14, alignItems: modo === "grid" ? "stretch" : "center",
+              }}
             >
-              <div style={{ height: 110, background: "var(--panel)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <r.Icon size={36} color="var(--accent)" />
+              <div style={{
+                width: modo === "grid" ? "100%" : 64, height: modo === "grid" ? 64 : 64,
+                borderRadius: 10, background: "var(--panel)", border: "1px solid var(--accent2)",
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+              }}>
+                <r.Icon size={28} color="var(--accent)" />
               </div>
-              <div style={{ padding: 14 }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 700, fontSize: 13, color: "#fff" }}>{r.nome}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 700, fontSize: 14, color: "#fff" }}>{r.nome}</span>
                   <ChevronRight size={14} color="var(--muted)" />
                 </div>
                 <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 12, color: "var(--muted)" }}>{r.cat}</span>
@@ -96,6 +118,8 @@ export default function RestaurantesListaView({ onSelect }) {
           ))}
         </div>
       )}
+
+      <Pagination page={pagAtual} totalPages={totalPaginas} onChange={setPagina} />
     </div>
   );
 }
