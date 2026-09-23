@@ -30,7 +30,7 @@ const TOKEN_KEY = "entregafood_token";
 const USUARIO_KEY = "entregafood_usuario";
 
 /* ------------------------------------------------------------------ */
-/* Erro de API                                                         */
+/* Erro de API                                                        */
 /* ------------------------------------------------------------------ */
 
 export class ApiError extends Error {
@@ -43,7 +43,7 @@ export class ApiError extends Error {
 }
 
 /* ------------------------------------------------------------------ */
-/* Fetch genérico                                                      */
+/* Fetch genérico                                                     */
 /* ------------------------------------------------------------------ */
 
 export async function apiFetch(path, options = {}) {
@@ -78,12 +78,17 @@ export async function apiFetch(path, options = {}) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Sessão                                                              */
+/* Sessão                                                             */
 /* ------------------------------------------------------------------ */
 
 function guardarSessao(data) {
-  if (data?.access_token) saveToken(data.access_token);
-  if (data?.usuario) saveUsuario(data.usuario);
+  if (data?.access_token) {
+    saveToken(data.access_token);
+  }
+
+  if (data?.usuario) {
+    saveUsuario(data.usuario);
+  }
 
   return data;
 }
@@ -142,7 +147,7 @@ export function consumeOAuthResultFromQuery() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Login por senha                                                     */
+/* Login por senha                                                    */
 /* ------------------------------------------------------------------ */
 
 export async function loginWithPassword(identificador, senha) {
@@ -185,7 +190,7 @@ export async function fetchUsuarioLogado() {
 }
 
 /* ------------------------------------------------------------------ */
-/* OTP — login por telefone                                            */
+/* OTP — login por telefone                                           */
 /* ------------------------------------------------------------------ */
 
 export async function solicitarCodigoLoginTelefone(telefone) {
@@ -210,7 +215,7 @@ export async function verificarCodigoLoginTelefone(telefone, codigo) {
 }
 
 /* ------------------------------------------------------------------ */
-/* OTP — cadastro por telefone                                         */
+/* OTP — cadastro por telefone                                        */
 /* ------------------------------------------------------------------ */
 
 export async function solicitarCodigoCadastroTelefone({
@@ -248,7 +253,7 @@ export async function confirmarCadastroTelefone({
 }
 
 /* ------------------------------------------------------------------ */
-/* Usuários (/usuarios)                                                */
+/* Usuários (/usuarios)                                               */
 /* ------------------------------------------------------------------ */
 
 export async function registerUsuario({
@@ -323,7 +328,7 @@ export const usuarios = {
 };
 
 /* ------------------------------------------------------------------ */
-/* Endereços (/locais)                                                 */
+/* Endereços (/locais)                                                */
 /* ------------------------------------------------------------------ */
 
 export const locais = {
@@ -353,6 +358,32 @@ export const locais = {
     apiFetch(`/locais/${id}`, {
       method: "DELETE",
     }),
+};
+
+/* ------------------------------------------------------------------ */
+/* Consultas do cliente (/consultas)                                  */
+/* ------------------------------------------------------------------ */
+/*
+ * Leitura pública para o cliente.
+ * Retorna restaurantes aprovados e itens disponíveis,
+ * no formato utilizado pelas telas do cliente.
+ */
+
+export const consultas = {
+  restaurantes: (busca) =>
+    apiFetch(
+      `/consultas/restaurantes${
+        busca
+          ? `?busca=${encodeURIComponent(busca)}`
+          : ""
+      }`
+    ),
+
+  restaurante: (id) =>
+    apiFetch(`/consultas/restaurantes/${id}`),
+
+  cardapio: (id) =>
+    apiFetch(`/consultas/restaurantes/${id}/cardapio`),
 };
 
 /* ------------------------------------------------------------------ */
@@ -404,7 +435,7 @@ export const restaurantes = {
 };
 
 /* ------------------------------------------------------------------ */
-/* Produtos (/produtos)                                                */
+/* Produtos (/produtos)                                               */
 /* ------------------------------------------------------------------ */
 
 export const produtos = {
@@ -437,7 +468,7 @@ export const produtos = {
 };
 
 /* ------------------------------------------------------------------ */
-/* Consultas de restaurantes para o cliente                            */
+/* Consultas de restaurantes para o cliente                           */
 /* ------------------------------------------------------------------ */
 
 export async function consultarRestaurantes({
@@ -466,7 +497,7 @@ export async function consultarCardapio(id) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Token + usuário em cache                                            */
+/* Token + usuário em cache                                           */
 /* ------------------------------------------------------------------ */
 
 export function saveToken(token) {
@@ -503,7 +534,7 @@ export function getUsuarioId() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Restaurante ativo                                                   */
+/* Restaurante ativo                                                  */
 /* ------------------------------------------------------------------ */
 
 const RESTAURANTE_KEY = "entregafood_restaurante";
@@ -530,7 +561,7 @@ export function getRestauranteAtivoId() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Logout                                                              */
+/* Logout                                                             */
 /* ------------------------------------------------------------------ */
 
 export function logout() {
