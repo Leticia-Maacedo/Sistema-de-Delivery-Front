@@ -13,7 +13,7 @@ import CadastroEnderecoView from "./views/cliente/CadastroEnderecoView";
 import PaginaPrincipalView from "./views/cliente/PaginaPrincipalView";
 import RestaurantesListaView from "./views/cliente/RestaurantesListaView";
 import CardapioRestauranteView from "./views/cliente/CardapioRestauranteView";
-import ProdutoDetalheView from "./views/cliente/ProdutoDetalheView";
+import ProdutoDetalheView from "./views/cliente/Produtodetalheview";
 import CestaView from "./views/cliente/CestaView";
 import PagamentoView from "./views/cliente/PagamentoView";
 import HistoricoView from "./views/cliente/HistoricoView";
