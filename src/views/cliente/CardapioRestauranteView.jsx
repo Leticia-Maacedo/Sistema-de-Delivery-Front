@@ -6,15 +6,15 @@ import { consultas, ApiError } from "../../api/client";
 const fmt = (n) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
 
 /**
- * Listagem e seleção de produtos — GET /consultas/restaurantes/{id}/cardapio.
- * Só traz itens com disponivel = true (o back já filtra).
+ * Listagem e seleÃ§Ã£o de produtos â€” GET /consultas/restaurantes/{id}/cardapio.
+ * SÃ³ traz itens com disponivel = true (o back jÃ¡ filtra).
  *
- * O carrinho ({ produtoId: quantidade }) e as funções pra alterá-lo vêm
+ * O carrinho ({ produtoId: quantidade }) e as funÃ§Ãµes pra alterÃ¡-lo vÃªm
  * de fora (props), porque a tela de "detalhes do produto" precisa
- * continuar enxergando/alterando o mesmo carrinho quando o usuário
- * navega pra lá e volta.
+ * continuar enxergando/alterando o mesmo carrinho quando o usuÃ¡rio
+ * navega pra lÃ¡ e volta.
  */
-export default function CardapioRestauranteView({ restauranteId, onBack, onSelectProduto, carrinho, onAdicionar, onRemover }) {
+export default function CardapioRestauranteView({ restauranteId, onBack, onSelectProduto, onVerCarrinho, carrinho, onAdicionar, onRemover }) {
   const [dados, setDados] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
@@ -25,7 +25,7 @@ export default function CardapioRestauranteView({ restauranteId, onBack, onSelec
     consultas
       .cardapio(restauranteId)
       .then(setDados)
-      .catch((e) => setErro(e instanceof ApiError ? e.message : "Não foi possível carregar o cardápio."))
+      .catch((e) => setErro(e instanceof ApiError ? e.message : "NÃ£o foi possÃ­vel carregar o cardÃ¡pio."))
       .finally(() => setCarregando(false));
   }, [restauranteId]);
 
@@ -33,13 +33,13 @@ export default function CardapioRestauranteView({ restauranteId, onBack, onSelec
   const totalPreco = (dados?.itens || []).reduce((soma, it) => soma + (carrinho[it.id] || 0) * Number(it.preco), 0);
 
   if (carregando) {
-    return <div style={{ fontFamily: "'Exo 2', sans-serif", color: "var(--muted)" }}>Carregando cardápio...</div>;
+    return <div style={{ fontFamily: "'Exo 2', sans-serif", color: "var(--muted)" }}>Carregando cardÃ¡pio...</div>;
   }
   if (erro || !dados) {
     return (
       <div style={{ maxWidth: 480, margin: "0 auto" }}>
         <button onClick={onBack} className="ef-btn-outline" style={{ marginBottom: 14 }}><ArrowLeft size={14} /> VOLTAR</button>
-        <EmptyState title="RESTAURANTE INDISPONÍVEL" subtitle={erro || "Não encontramos esse restaurante."} />
+        <EmptyState title="RESTAURANTE INDISPONÃVEL" subtitle={erro || "NÃ£o encontramos esse restaurante."} />
       </div>
     );
   }
@@ -63,8 +63,8 @@ export default function CardapioRestauranteView({ restauranteId, onBack, onSelec
       </div>
 
       <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 10 }}>
-        <span style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 700, fontSize: 13, color: "#fff" }}>Cardápio</span>
-        {itens.length === 0 && <EmptyState title="CARDÁPIO VAZIO" subtitle="Esse restaurante ainda não tem itens disponíveis." />}
+        <span style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 700, fontSize: 13, color: "#fff" }}>CardÃ¡pio</span>
+        {itens.length === 0 && <EmptyState title="CARDÃPIO VAZIO" subtitle="Esse restaurante ainda nÃ£o tem itens disponÃ­veis." />}
         {itens.map((it) => {
           const qtd = carrinho[it.id] || 0;
           return (
@@ -92,7 +92,7 @@ export default function CardapioRestauranteView({ restauranteId, onBack, onSelec
 
       {totalItens > 0 && (
         <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, display: "flex", justifyContent: "center", padding: "14px 16px", background: "linear-gradient(transparent, var(--bg) 30%)" }}>
-          <button className="ef-btn-solid" style={{ maxWidth: 640, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px" }}>
+          <button onClick={onVerCarrinho} className="ef-btn-solid" style={{ maxWidth: 640, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px" }}>
             <span style={{ display: "flex", alignItems: "center", gap: 8 }}><ShoppingCart size={16} /> Ver carrinho ({totalItens})</span>
             <span>{fmt(totalPreco)}</span>
           </button>

@@ -1,8 +1,8 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Truck, ArrowLeft, Search, Bell, MessageCircle } from "lucide-react";
 
 import { NAV_CLIENTE, NAV_CLIENTE_HIDDEN, NAV_PARCEIRO, NAV_ADMIN_SIDEBAR, ADMIN_TITLES } from "./data/navigation";
-import { consumeOAuthResultFromQuery, isLoggedIn } from "./api/client";
+import { consumeOAuthResultFromQuery, isLoggedIn, cesta } from "./api/client";
 import ClientSidebar from "./components/ClientSidebar";
 import SystemStatus from "./components/SystemStatus";
 
@@ -14,6 +14,7 @@ import PaginaPrincipalView from "./views/cliente/PaginaPrincipalView";
 import RestaurantesListaView from "./views/cliente/RestaurantesListaView";
 import CardapioRestauranteView from "./views/cliente/CardapioRestauranteView";
 import ProdutoDetalheView from "./views/cliente/ProdutoDetalheView";
+import CestaView from "./views/cliente/CestaView";
 import PagamentoView from "./views/cliente/PagamentoView";
 import HistoricoView from "./views/cliente/HistoricoView";
 
@@ -135,6 +136,16 @@ export default function App() {
             carrinho={carrinho}
             onAdicionar={adicionarAoCarrinho}
             onRemover={removerDoCarrinho}
+          />
+        );
+      case "cesta":
+        return (
+          <CestaView
+            onBack={async () => {
+              await carregarCarrinho();
+              setView("cardapio-restaurante");
+            }}
+            onFinalizar={() => setView("pagamento")}
           />
         );
       case "pagamento": return <PagamentoView />;

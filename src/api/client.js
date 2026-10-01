@@ -98,7 +98,7 @@ export function normalizarTelefone(telefone) {
 }
 
 /* ------------------------------------------------------------------ */
-/* OAuth (Google / Facebook)                                           */
+/* OAuth (Google / Facebook)                                          */
 /* ------------------------------------------------------------------ */
 
 export function getGoogleLoginUrl() {
@@ -363,6 +363,7 @@ export const locais = {
 /* ------------------------------------------------------------------ */
 /* Consultas do cliente (/consultas)                                  */
 /* ------------------------------------------------------------------ */
+
 /*
  * Leitura pública para o cliente.
  * Retorna restaurantes aprovados e itens disponíveis,
@@ -495,6 +496,37 @@ export async function consultarRestaurante(id) {
 export async function consultarCardapio(id) {
   return apiFetch(`/consultas/restaurantes/${id}/cardapio`);
 }
+
+/* ------------------------------------------------------------------ */
+/* Cesta (/cesta)                                                     */
+/* ------------------------------------------------------------------ */
+
+export const cesta = {
+  consultar: () =>
+    apiFetch("/cesta"),
+
+  adicionar: (produtoId, quantidade = 1) =>
+    apiFetch("/cesta/itens", {
+      method: "POST",
+      body: JSON.stringify({
+        produto_id: produtoId,
+        quantidade,
+      }),
+    }),
+
+  alterarQuantidade: (produtoId, quantidade) =>
+    apiFetch(`/cesta/itens/${produtoId}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        quantidade,
+      }),
+    }),
+
+  remover: (produtoId) =>
+    apiFetch(`/cesta/itens/${produtoId}`, {
+      method: "DELETE",
+    }),
+};
 
 /* ------------------------------------------------------------------ */
 /* Token + usuário em cache                                           */
