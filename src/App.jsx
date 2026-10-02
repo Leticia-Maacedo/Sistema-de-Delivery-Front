@@ -90,6 +90,11 @@ export default function App() {
     setView("produto-detalhe");
   };
 
+  const openCesta = () => {
+    setGroupKey("cliente");
+    setView("cesta");
+  };
+
   // Abre o formulário de restaurante em modo edição (id existente) —
   // usado pelo botão "Editar" na Área do Parceiro. Pra modo criação,
   // basta goTo("cadastro-restaurante") direto, sem passar por aqui.
@@ -123,6 +128,7 @@ export default function App() {
             restauranteId={restauranteId}
             onBack={() => setView("restaurantes-cliente")}
             onSelectProduto={openProdutoDetalhe}
+            onVerCarrinho={openCesta}
             carrinho={carrinho}
             onAdicionar={adicionarAoCarrinho}
             onRemover={removerDoCarrinho}
@@ -141,8 +147,7 @@ export default function App() {
       case "cesta":
         return (
           <CestaView
-            onBack={async () => {
-              await carregarCarrinho();
+            onBack={() => {
               setView("cardapio-restaurante");
             }}
             onFinalizar={() => setView("pagamento")}
