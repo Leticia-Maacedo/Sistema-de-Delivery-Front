@@ -141,6 +141,68 @@ importam funções deste arquivo.
   função nova para um domínio que já tem objeto agrupador (`usuarios`,
   `locais`, `restaurantes`, `produtos`), siga o padrão do objeto.
 
+### Fluxo da Cesta
+
+A funcionalidade de **Cesta** integra o fluxo do cliente com a API real do
+EntregaFood. A navegação parte do cardápio do restaurante: o botão
+`Ver carrinho` chama `openCesta()` em `App.jsx`, que altera a view atual para
+`"cesta"` e renderiza `src/views/cliente/CestaView.jsx`.
+
+`CestaView` utiliza o objeto `cesta`, exportado por `src/api/client.js`, para
+consultar e alterar os dados persistidos no backend. As chamadas passam por
+`apiFetch`, portanto utilizam automaticamente o token JWT salvo na sessão.
+
+Fluxo arquitetural:
+
+```text
+Cliente / Navegador
+        |
+        v
+CardapioRestauranteView
+        |
+        | onVerCarrinho
+        v
+App.jsx
+        |
+        | setView("cesta")
+        v
+CestaView
+        |
+        v
+src/api/client.js -> cesta.*
+        |
+        | HTTP + JSON + Bearer JWT
+        v
+API REST EntregaFood
+        |
+        | GET    /cesta
+        | POST   /cesta/itens
+        | PUT    /cesta/itens/{produto_id}
+        | DELETE /cesta/itens/{produto_id}
+        v
+Backend / regras da Cesta
+        |
+        v
+PostgreSQL
+   sacola / item_sacola
+```
+
+Operações disponíveis no front:
+
+| Função | Método HTTP | Endpoint | Responsabilidade |
+|---|---|---|---|
+| `cesta.consultar()` | GET | `/cesta` | Consulta a cesta do usuário autenticado e seus itens. |
+| `cesta.adicionar(produtoId, quantidade)` | POST | `/cesta/itens` | Adiciona um produto à cesta. |
+| `cesta.alterarQuantidade(produtoId, quantidade)` | PUT | `/cesta/itens/{produtoId}` | Altera a quantidade de um item existente. |
+| `cesta.remover(produtoId)` | DELETE | `/cesta/itens/{produtoId}` | Remove um produto da cesta. |
+
+A `CestaView` exibe os itens retornados pela API, preço unitário, quantidade,
+subtotal e total da cesta. Os controles de incremento, decremento e exclusão
+atualizam a API e utilizam a resposta do backend para atualizar a interface.
+
+Essa integração mantém a separação de responsabilidades adotada no projeto:
+a view cuida da interface, `client.js` centraliza a comunicação HTTP e o
+backend concentra persistência e regras de negócio.
 ## 5. Serviços externos usados só pelo front (`src/api/geo.js`)
 
 Dois serviços públicos, gratuitos, sem chave de API, que **não passam pelo
