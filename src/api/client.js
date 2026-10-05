@@ -277,15 +277,19 @@ export const consultas = {
 /* ------------------------------------------------------------------ */
 
 export const cesta = {
-  obter: (clienteId) => apiFetch(`/cesta?cliente_id=${clienteId}`),
-  adicionarItem: (sacolaId, produtoId, quantidade = 1) =>
-    apiFetch(`/cesta/${sacolaId}/itens`, {
+  /** GET /cesta — autenticado, sem precisar passar cliente_id */
+  obter: () => apiFetch("/cesta"),
+  /** POST /cesta/itens — body { produto_id, quantidade } */
+  adicionarItem: (produtoId, quantidade = 1) =>
+    apiFetch("/cesta/itens", {
       method: "POST",
       body: JSON.stringify({ produto_id: produtoId, quantidade }),
     }),
-  atualizarItem: (itemId, quantidade) =>
-    apiFetch(`/cesta/itens/${itemId}`, { method: "PUT", body: JSON.stringify({ quantidade }) }),
-  removerItem: (itemId) => apiFetch(`/cesta/itens/${itemId}`, { method: "DELETE" }),
+  /** PUT /cesta/itens/{produto_id} — a rota usa produto_id, não o id do item */
+  atualizarItem: (produtoId, quantidade) =>
+    apiFetch(`/cesta/itens/${produtoId}`, { method: "PUT", body: JSON.stringify({ quantidade }) }),
+  /** DELETE /cesta/itens/{produto_id} */
+  removerItem: (produtoId) => apiFetch(`/cesta/itens/${produtoId}`, { method: "DELETE" }),
 };
 
 /* ------------------------------------------------------------------ */

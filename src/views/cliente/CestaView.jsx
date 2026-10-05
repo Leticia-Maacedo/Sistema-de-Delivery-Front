@@ -1,431 +1,72 @@
-import React, { useEffect, useState } from "react";
-import {
-  ArrowLeft,
-  ShoppingCart,
-  Plus,
-  Minus,
-  Trash2,
-  LoaderCircle,
-} from "lucide-react";
+import React from "react";
+import { ArrowLeft, Trash2, Plus, Minus, ShoppingCart } from "lucide-react";
+import EmptyState from "../../components/EmptyState";
 
-import { cesta } from "../../api/client";
+const fmt = (n) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
 
-export default function CestaView({ onBack, onFinalizar }) {
-  const [dados, setDados] = useState(null);
-  const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState("");
-  const [alterandoId, setAlterandoId] = useState(null);
-
-  const carregarCesta = async () => {
-    try {
-      setErro("");
-      setCarregando(true);
-
-      const resposta = await cesta.consultar();
-      setDados(resposta);
-    } catch (err) {
-      setErro(err.message || "Não foi possível carregar a cesta.");
-    } finally {
-      setCarregando(false);
-    }
-  };
-
-  useEffect(() => {
-    carregarCesta();
-  }, []);
-
-  const alterarQuantidade = async (item, novaQuantidade) => {
-    if (alterandoId !== null) return;
-
-    try {
-      setErro("");
-      setAlterandoId(item.produto_id);
-
-      let resposta;
-
-      if (novaQuantidade <= 0) {
-        resposta = await cesta.remover(item.produto_id);
-      } else {
-        resposta = await cesta.alterarQuantidade(
-          item.produto_id,
-          novaQuantidade
-        );
-      }
-
-      setDados(resposta);
-    } catch (err) {
-      setErro(err.message || "Não foi possível alterar a quantidade.");
-    } finally {
-      setAlterandoId(null);
-    }
-  };
-
-  const removerItem = async (produtoId) => {
-    if (alterandoId !== null) return;
-
-    try {
-      setErro("");
-      setAlterandoId(produtoId);
-
-      const resposta = await cesta.remover(produtoId);
-      setDados(resposta);
-    } catch (err) {
-      setErro(err.message || "Não foi possível remover o produto.");
-    } finally {
-      setAlterandoId(null);
-    }
-  };
-
-  const formatarMoeda = (valor) =>
-    Number(valor || 0).toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    });
-
+/**
+ * Visualização da Cesta — GET /cesta (feito no App.jsx, aqui só exibe).
+ * Toda mutação (+ / - / excluir) devolve a sacola inteira atualizada,
+ * então este componente é "burro": só mostra o que recebe em `sacola`
+ * e chama os callbacks, sem guardar nenhum estado próprio.
+ */
+export default function CestaView({ sacola, carregando, erro, onAumentar, onDiminuir, onRemoverItem, onBack, onIrParaPagamento }) {
   if (carregando) {
-    return (
-      <div
-        style={{
-          minHeight: 420,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexDirection: "column",
-          gap: 12,
-        }}
-      >
-        <LoaderCircle size={30} />
-        <span style={{ color: "var(--muted)" }}>
-          Carregando cesta...
-        </span>
-      </div>
-    );
+    return <div style={{ fontFamily: "'Exo 2', sans-serif", color: "var(--muted)" }}>Carregando cesta...</div>;
   }
 
-  const itens = dados?.itens || [];
-  const cestaVazia = itens.length === 0;
+  const itens = sacola?.itens || [];
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto" }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 14,
-          marginBottom: 24,
-        }}
-      >
-        <button
-          type="button"
-          className="ef-btn-outline"
-          onClick={onBack}
-          style={{
-            width: 42,
-            height: 42,
-            padding: 0,
-            justifyContent: "center",
-          }}
-        >
-          <ArrowLeft size={17} />
-        </button>
+    <div style={{ maxWidth: 600, margin: "0 auto" }}>
+      <button onClick={onBack} className="ef-btn-outline" style={{ marginBottom: 14 }}>
+        <ArrowLeft size={14} /> VOLTAR
+      </button>
 
-        <div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <ShoppingCart size={20} color="var(--accent)" />
-
-            <h1
-              style={{
-                margin: 0,
-                fontFamily: "'Exo 2', sans-serif",
-                fontSize: 24,
-              }}
-            >
-              MINHA CESTA
-            </h1>
-          </div>
-
-          <div
-            style={{
-              marginTop: 4,
-              color: "var(--muted)",
-              fontSize: 12,
-            }}
-          >
-            Confira os produtos antes de continuar.
-          </div>
-        </div>
-      </div>
+      <h1 style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 17, color: "#fff", margin: 0, display: "flex", alignItems: "center", gap: 10 }}>
+        <ShoppingCart size={19} color="var(--accent)" /> MINHA CESTA
+      </h1>
 
       {erro && (
-        <div
-          className="ef-card"
-          style={{
-            marginBottom: 18,
-            padding: 14,
-            border: "1px solid #b94a48",
-          }}
-        >
-          <div style={{ color: "#ff8a80", fontSize: 13 }}>
-            {erro}
-          </div>
-
-          <button
-            type="button"
-            className="ef-btn-outline"
-            onClick={carregarCesta}
-            style={{ marginTop: 10 }}
-          >
-            TENTAR NOVAMENTE
-          </button>
-        </div>
+        <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 12, color: "#E6534C", marginTop: 10 }}>{erro}</div>
       )}
 
-      {cestaVazia ? (
-        <div
-          className="ef-card"
-          style={{
-            padding: 40,
-            textAlign: "center",
-          }}
-        >
-          <ShoppingCart
-            size={42}
-            color="var(--muted)"
-            style={{ marginBottom: 12 }}
-          />
-
-          <h2
-            style={{
-              margin: "0 0 8px",
-              fontFamily: "'Exo 2', sans-serif",
-              fontSize: 18,
-            }}
-          >
-            SUA CESTA ESTÁ VAZIA
-          </h2>
-
-          <p
-            style={{
-              margin: "0 0 20px",
-              color: "var(--muted)",
-              fontSize: 13,
-            }}
-          >
-            Escolha produtos de um restaurante para adicioná-los à cesta.
-          </p>
-
-          <button
-            type="button"
-            className="ef-btn"
-            onClick={onBack}
-          >
-            ESCOLHER PRODUTOS
-          </button>
+      {itens.length === 0 ? (
+        <div style={{ marginTop: 18 }}>
+          <EmptyState title="CESTA VAZIA" subtitle="Adicione itens do cardápio de um restaurante pra vê-los aqui." />
         </div>
       ) : (
         <>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-            }}
-          >
-            {itens.map((item) => {
-              const alterando = alterandoId === item.produto_id;
-
-              return (
-                <div
-                  key={item.id}
-                  className="ef-card"
-                  style={{
-                    padding: 18,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 20,
-                    opacity: alterando ? 0.65 : 1,
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <div
-                      style={{
-                        fontFamily: "'Exo 2', sans-serif",
-                        fontWeight: 700,
-                        fontSize: 15,
-                      }}
-                    >
-                      {item.nome}
-                    </div>
-
-                    <div
-                      style={{
-                        color: "var(--muted)",
-                        fontSize: 12,
-                        marginTop: 5,
-                      }}
-                    >
-                      {formatarMoeda(item.preco_unitario)} cada
-                    </div>
-
-                    <div
-                      style={{
-                        marginTop: 8,
-                        fontWeight: 700,
-                        color: "var(--accent)",
-                      }}
-                    >
-                      {formatarMoeda(item.subtotal)}
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <button
-                      type="button"
-                      className="ef-btn-outline"
-                      disabled={alterando}
-                      onClick={() =>
-                        alterarQuantidade(
-                          item,
-                          item.quantidade - 1
-                        )
-                      }
-                      style={{
-                        width: 36,
-                        height: 36,
-                        padding: 0,
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Minus size={14} />
-                    </button>
-
-                    <span
-                      style={{
-                        minWidth: 28,
-                        textAlign: "center",
-                        fontWeight: 700,
-                      }}
-                    >
-                      {item.quantidade}
-                    </span>
-
-                    <button
-                      type="button"
-                      className="ef-btn-outline"
-                      disabled={alterando}
-                      onClick={() =>
-                        alterarQuantidade(
-                          item,
-                          item.quantidade + 1
-                        )
-                      }
-                      style={{
-                        width: 36,
-                        height: 36,
-                        padding: 0,
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Plus size={14} />
-                    </button>
-
-                    <button
-                      type="button"
-                      className="ef-btn-outline"
-                      disabled={alterando}
-                      onClick={() =>
-                        removerItem(item.produto_id)
-                      }
-                      title="Remover produto"
-                      style={{
-                        width: 36,
-                        height: 36,
-                        padding: 0,
-                        justifyContent: "center",
-                        marginLeft: 4,
-                      }}
-                    >
-                      {alterando ? (
-                        <LoaderCircle size={14} />
-                      ) : (
-                        <Trash2 size={14} />
-                      )}
-                    </button>
-                  </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 18 }}>
+            {itens.map((item) => (
+              <div key={item.id} className="ef-card" style={{ padding: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                <div style={{ flex: 1, minWidth: 140 }}>
+                  <div style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 600, fontSize: 13, color: "#fff" }}>{item.nome}</div>
+                  <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 12, color: "var(--muted)", marginTop: 4 }}>{fmt(item.preco_unitario)} cada</div>
                 </div>
-              );
-            })}
-          </div>
-
-          <div
-            className="ef-card"
-            style={{
-              marginTop: 20,
-              padding: 20,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 18,
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    color: "var(--muted)",
-                    fontSize: 11,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Total da cesta
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <button onClick={() => onDiminuir(item)} className="ef-icon-btn"><Minus size={14} /></button>
+                  <span style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 700, fontSize: 13, color: "#fff", minWidth: 16, textAlign: "center" }}>{item.quantidade}</span>
+                  <button onClick={() => onAumentar(item)} className="ef-icon-btn" style={{ color: "var(--accent)", borderColor: "var(--accent)" }}><Plus size={14} /></button>
                 </div>
-
-                <div
-                  style={{
-                    fontFamily: "'Exo 2', sans-serif",
-                    fontSize: 25,
-                    fontWeight: 800,
-                    marginTop: 4,
-                  }}
-                >
-                  {formatarMoeda(dados?.total)}
+                <div style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 700, fontSize: 13, color: "var(--accent)", minWidth: 74, textAlign: "right" }}>
+                  {fmt(item.subtotal)}
                 </div>
+                <button onClick={() => onRemoverItem(item.produto_id)} className="ef-icon-btn" style={{ color: "#E6534C", borderColor: "#E6534C" }}>
+                  <Trash2 size={14} />
+                </button>
               </div>
-
-              <ShoppingCart
-                size={26}
-                color="var(--accent)"
-              />
-            </div>
-
-            <button
-              type="button"
-              className="ef-btn"
-              onClick={onFinalizar}
-              style={{
-                width: "100%",
-                justifyContent: "center",
-              }}
-            >
-              CONTINUAR PARA PAGAMENTO
-            </button>
+            ))}
           </div>
+
+          <div className="ef-card" style={{ padding: 18, marginTop: 18, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 700, fontSize: 14, color: "#fff" }}>Total</span>
+            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 16, color: "var(--accent)" }}>{fmt(sacola.total)}</span>
+          </div>
+
+          <button className="ef-btn-solid" style={{ marginTop: 14 }} onClick={onIrParaPagamento}>
+            IR PARA O PAGAMENTO
+          </button>
         </>
       )}
     </div>

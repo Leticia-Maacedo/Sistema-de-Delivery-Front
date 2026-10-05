@@ -12,7 +12,7 @@ const fmt = (n) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
  * carrinho da tela de cardápio, ver CardapioRestauranteView) pra que a
  * quantidade fique sincronizada entre as duas telas.
  */
-export default function ProdutoDetalheView({ produtoId, onBack, carrinho, onAdicionar, onRemover }) {
+export default function ProdutoDetalheView({ produtoId, onBack, carrinho, onAdicionar, onRemover, onVerCarrinho }) {
   const [produto, setProduto] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
@@ -83,7 +83,7 @@ export default function ProdutoDetalheView({ produtoId, onBack, carrinho, onAdic
 
       {qtd > 0 && (
         <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, display: "flex", justifyContent: "center", padding: "14px 16px", background: "linear-gradient(transparent, var(--bg) 30%)" }}>
-          <button className="ef-btn-solid" style={{ maxWidth: 640, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px" }}>
+          <button onClick={onVerCarrinho} className="ef-btn-solid" style={{ maxWidth: 640, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px" }}>
             <span style={{ display: "flex", alignItems: "center", gap: 8 }}><ShoppingCart size={16} /> Ver carrinho ({qtd})</span>
             <span>{fmt(qtd * Number(produto?.preco || 0))}</span>
           </button>

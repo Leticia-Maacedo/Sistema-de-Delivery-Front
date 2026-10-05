@@ -2,7 +2,7 @@
 import { Truck, ArrowLeft, Search, Bell, MessageCircle } from "lucide-react";
 
 import { NAV_CLIENTE, NAV_CLIENTE_HIDDEN, NAV_PARCEIRO, NAV_ADMIN_SIDEBAR, ADMIN_TITLES } from "./data/navigation";
-import { consumeOAuthResultFromQuery, isLoggedIn, getUsuarioId, cesta, ApiError } from "./api/client";
+import { consumeOAuthResultFromQuery, isLoggedIn, cesta, ApiError } from "./api/client";
 import ClientSidebar from "./components/ClientSidebar";
 import SystemStatus from "./components/SystemStatus";
 
@@ -51,7 +51,6 @@ export default function App() {
   const [pedidoAtual, setPedidoAtual] = useState(null);
   const [carregandoCesta, setCarregandoCesta] = useState(false);
   const [erroCesta, setErroCesta] = useState("");
-  const clienteId = getUsuarioId();
 
   // "carrinho" no formato { produtoId: quantidade } — é só uma projeção
   // da sacola, pra CardapioRestauranteView e ProdutoDetalheView (que já
@@ -60,12 +59,11 @@ export default function App() {
   (sacola?.itens || []).forEach((i) => { carrinho[i.produto_id] = i.quantidade; });
 
   const carregarCesta = async () => {
-    if (!clienteId) return;
+    if (!isLoggedIn()) return;
     setCarregandoCesta(true);
     setErroCesta("");
     try {
-      const dados = await cesta.obter(clienteId);
-      setSacola(dados);
+      setSacola(await cesta.obter());
     } catch (e) {
       setErroCesta(e instanceof ApiError ? e.message : "Não foi possível carregar sua cesta.");
     } finally {
@@ -73,23 +71,24 @@ export default function App() {
     }
   };
 
+  // Carrega a cesta assim que a pessoa loga (view muda pra algo que não é
+  // login/cadastro) — não dá pra depender só do [] porque o login acontece
+  // bem depois do primeiro render.
   useEffect(() => {
-    carregarCesta();
+    if (isLoggedIn() && !sacola) carregarCesta();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clienteId]);
+  }, [view]);
 
-  // Inclusão de produto na cesta (usada pelo "+" no cardápio e no detalhe do produto)
+  // Inclusão de produto na cesta — POST /cesta/itens (autenticado, sem
+  // precisar saber o id da sacola: o back acha/cria pelo token).
   const adicionarAoCarrinho = async (produtoId) => {
-    if (!clienteId) {
+    if (!isLoggedIn()) {
       goTo("login");
       return;
     }
     setErroCesta("");
     try {
-      let s = sacola;
-      if (!s) s = await cesta.obter(clienteId);
-      const atualizado = await cesta.adicionarItem(s.id, produtoId, 1);
-      setSacola(atualizado);
+      setSacola(await cesta.adicionarItem(produtoId, 1));
     } catch (e) {
       setErroCesta(e instanceof ApiError ? e.message : "Não foi possível adicionar o item na cesta.");
     }
@@ -97,6 +96,7 @@ export default function App() {
 
   // Alteração de quantidade / exclusão — usado pelo "-" no cardápio e no detalhe do produto.
   // Se a quantidade cai a zero, o item é excluído em vez de ficar com quantidade 0.
+  // As rotas do back usam produto_id (não um id de item separado).
   const removerDoCarrinho = async (produtoId) => {
     const item = sacola?.itens.find((i) => i.produto_id === produtoId);
     if (!item) return;
@@ -104,8 +104,8 @@ export default function App() {
     try {
       const atualizado =
         item.quantidade <= 1
-          ? await cesta.removerItem(item.id)
-          : await cesta.atualizarItem(item.id, item.quantidade - 1);
+          ? await cesta.removerItem(produtoId)
+          : await cesta.atualizarItem(produtoId, item.quantidade - 1);
       setSacola(atualizado);
     } catch (e) {
       setErroCesta(e instanceof ApiError ? e.message : "Não foi possível atualizar o item.");
@@ -113,11 +113,11 @@ export default function App() {
   };
 
   // Os três handlers abaixo são usados dentro da própria tela da Cesta
-  // (CestaView), que já mostra os itens com o objeto inteiro, não só o id.
+  // (CestaView), que já mostra os itens com o objeto inteiro.
   const aumentarItemCesta = async (item) => {
     setErroCesta("");
     try {
-      setSacola(await cesta.atualizarItem(item.id, item.quantidade + 1));
+      setSacola(await cesta.atualizarItem(item.produto_id, item.quantidade + 1));
     } catch (e) {
       setErroCesta(e instanceof ApiError ? e.message : "Não foi possível atualizar o item.");
     }
@@ -127,17 +127,19 @@ export default function App() {
     setErroCesta("");
     try {
       const atualizado =
-        item.quantidade <= 1 ? await cesta.removerItem(item.id) : await cesta.atualizarItem(item.id, item.quantidade - 1);
+        item.quantidade <= 1
+          ? await cesta.removerItem(item.produto_id)
+          : await cesta.atualizarItem(item.produto_id, item.quantidade - 1);
       setSacola(atualizado);
     } catch (e) {
       setErroCesta(e instanceof ApiError ? e.message : "Não foi possível atualizar o item.");
     }
   };
 
-  const removerItemCesta = async (itemId) => {
+  const removerItemCesta = async (produtoId) => {
     setErroCesta("");
     try {
-      setSacola(await cesta.removerItem(itemId));
+      setSacola(await cesta.removerItem(produtoId));
     } catch (e) {
       setErroCesta(e instanceof ApiError ? e.message : "Não foi possível remover o item.");
     }
