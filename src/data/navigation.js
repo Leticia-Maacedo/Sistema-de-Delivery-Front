@@ -17,6 +17,11 @@ export const NAV_CLIENTE_HIDDEN = [
   { key: "cadastro-dados" },
   { key: "cadastro-endereco" },
   { key: "cardapio-restaurante" },
+  { key: "produto-detalhe" },
+  { key: "cesta" },
+  { key: "pedido-tipo-pagamento" },
+  { key: "pedido-cartao" },
+  { key: "pedido-confirmado" },
 ];
 
 export const NAV_PARCEIRO = [

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { Truck, ArrowLeft, Search, Bell, MessageCircle } from "lucide-react";
 
 import { NAV_CLIENTE, NAV_CLIENTE_HIDDEN, NAV_PARCEIRO, NAV_ADMIN_SIDEBAR, ADMIN_TITLES } from "./data/navigation";
-import { consumeOAuthResultFromQuery, isLoggedIn, cesta } from "./api/client";
+import { consumeOAuthResultFromQuery, isLoggedIn, getUsuarioId, cesta, ApiError } from "./api/client";
 import ClientSidebar from "./components/ClientSidebar";
 import SystemStatus from "./components/SystemStatus";
 
@@ -13,8 +13,11 @@ import CadastroEnderecoView from "./views/cliente/CadastroEnderecoView";
 import PaginaPrincipalView from "./views/cliente/PaginaPrincipalView";
 import RestaurantesListaView from "./views/cliente/RestaurantesListaView";
 import CardapioRestauranteView from "./views/cliente/CardapioRestauranteView";
-import ProdutoDetalheView from "./views/cliente/Produtodetalheview";
+import ProdutoDetalheView from "./views/cliente/ProdutoDetalheView";
 import CestaView from "./views/cliente/CestaView";
+import TipoPagamentoView from "./views/cliente/TipoPagamentoView";
+import FormularioCartaoView from "./views/cliente/FormularioCartaoView";
+import PedidoConfirmadoView from "./views/cliente/PedidoConfirmadoView";
 import PagamentoView from "./views/cliente/PagamentoView";
 import HistoricoView from "./views/cliente/HistoricoView";
 
@@ -40,22 +43,105 @@ export default function App() {
   const [produtoId, setProdutoId] = useState(null);
   const [oauthErro, setOauthErro] = useState("");
 
-  // Carrinho do cliente: { produtoId: quantidade }. Fica aqui (não dentro
-  // de CardapioRestauranteView) porque a tela de detalhes do produto
-  // precisa ler/alterar o mesmo carrinho quando o usuário navega pra lá
-  // e volta — se ficasse só no estado local da tela de cardápio, ele
-  // seria perdido a cada troca de tela.
-  const [carrinho, setCarrinho] = useState({});
+  // Cesta (carrinho) do cliente, vindo de verdade do back (GET /cesta).
+  // Toda mutação (+ / - / excluir) devolve a sacola inteira atualizada,
+  // então basta substituir este estado pela resposta — nunca calculamos
+  // quantidade/total na mão no front.
+  const [sacola, setSacola] = useState(null);
+  const [pedidoAtual, setPedidoAtual] = useState(null);
+  const [carregandoCesta, setCarregandoCesta] = useState(false);
+  const [erroCesta, setErroCesta] = useState("");
+  const clienteId = getUsuarioId();
 
-  const adicionarAoCarrinho = (id) => setCarrinho((c) => ({ ...c, [id]: (c[id] || 0) + 1 }));
-  const removerDoCarrinho = (id) =>
-    setCarrinho((c) => {
-      const atual = (c[id] || 0) - 1;
-      const novo = { ...c };
-      if (atual <= 0) delete novo[id];
-      else novo[id] = atual;
-      return novo;
-    });
+  // "carrinho" no formato { produtoId: quantidade } — é só uma projeção
+  // da sacola, pra CardapioRestauranteView e ProdutoDetalheView (que já
+  // sabiam renderizar esse formato) não precisarem mudar nada.
+  const carrinho = {};
+  (sacola?.itens || []).forEach((i) => { carrinho[i.produto_id] = i.quantidade; });
+
+  const carregarCesta = async () => {
+    if (!clienteId) return;
+    setCarregandoCesta(true);
+    setErroCesta("");
+    try {
+      const dados = await cesta.obter(clienteId);
+      setSacola(dados);
+    } catch (e) {
+      setErroCesta(e instanceof ApiError ? e.message : "Não foi possível carregar sua cesta.");
+    } finally {
+      setCarregandoCesta(false);
+    }
+  };
+
+  useEffect(() => {
+    carregarCesta();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clienteId]);
+
+  // Inclusão de produto na cesta (usada pelo "+" no cardápio e no detalhe do produto)
+  const adicionarAoCarrinho = async (produtoId) => {
+    if (!clienteId) {
+      goTo("login");
+      return;
+    }
+    setErroCesta("");
+    try {
+      let s = sacola;
+      if (!s) s = await cesta.obter(clienteId);
+      const atualizado = await cesta.adicionarItem(s.id, produtoId, 1);
+      setSacola(atualizado);
+    } catch (e) {
+      setErroCesta(e instanceof ApiError ? e.message : "Não foi possível adicionar o item na cesta.");
+    }
+  };
+
+  // Alteração de quantidade / exclusão — usado pelo "-" no cardápio e no detalhe do produto.
+  // Se a quantidade cai a zero, o item é excluído em vez de ficar com quantidade 0.
+  const removerDoCarrinho = async (produtoId) => {
+    const item = sacola?.itens.find((i) => i.produto_id === produtoId);
+    if (!item) return;
+    setErroCesta("");
+    try {
+      const atualizado =
+        item.quantidade <= 1
+          ? await cesta.removerItem(item.id)
+          : await cesta.atualizarItem(item.id, item.quantidade - 1);
+      setSacola(atualizado);
+    } catch (e) {
+      setErroCesta(e instanceof ApiError ? e.message : "Não foi possível atualizar o item.");
+    }
+  };
+
+  // Os três handlers abaixo são usados dentro da própria tela da Cesta
+  // (CestaView), que já mostra os itens com o objeto inteiro, não só o id.
+  const aumentarItemCesta = async (item) => {
+    setErroCesta("");
+    try {
+      setSacola(await cesta.atualizarItem(item.id, item.quantidade + 1));
+    } catch (e) {
+      setErroCesta(e instanceof ApiError ? e.message : "Não foi possível atualizar o item.");
+    }
+  };
+
+  const diminuirItemCesta = async (item) => {
+    setErroCesta("");
+    try {
+      const atualizado =
+        item.quantidade <= 1 ? await cesta.removerItem(item.id) : await cesta.atualizarItem(item.id, item.quantidade - 1);
+      setSacola(atualizado);
+    } catch (e) {
+      setErroCesta(e instanceof ApiError ? e.message : "Não foi possível atualizar o item.");
+    }
+  };
+
+  const removerItemCesta = async (itemId) => {
+    setErroCesta("");
+    try {
+      setSacola(await cesta.removerItem(itemId));
+    } catch (e) {
+      setErroCesta(e instanceof ApiError ? e.message : "Não foi possível remover o item.");
+    }
+  };
 
   // Ao carregar, verifica se voltamos de um login OAuth (Google/Facebook).
   // O oauth_controller redireciona para "/?oauth_token=<jwt>" (sucesso)
@@ -88,11 +174,6 @@ export default function App() {
   const openProdutoDetalhe = (id) => {
     setProdutoId(id);
     setView("produto-detalhe");
-  };
-
-  const openCesta = () => {
-    setGroupKey("cliente");
-    setView("cesta");
   };
 
   // Abre o formulário de restaurante em modo edição (id existente) —
@@ -128,10 +209,10 @@ export default function App() {
             restauranteId={restauranteId}
             onBack={() => setView("restaurantes-cliente")}
             onSelectProduto={openProdutoDetalhe}
-            onVerCarrinho={openCesta}
             carrinho={carrinho}
             onAdicionar={adicionarAoCarrinho}
             onRemover={removerDoCarrinho}
+            onVerCarrinho={() => goTo("cesta")}
           />
         );
       case "produto-detalhe":
@@ -142,17 +223,47 @@ export default function App() {
             carrinho={carrinho}
             onAdicionar={adicionarAoCarrinho}
             onRemover={removerDoCarrinho}
+            onVerCarrinho={() => goTo("cesta")}
           />
         );
       case "cesta":
         return (
           <CestaView
-            onBack={() => {
-              setView("cardapio-restaurante");
-            }}
-            onFinalizar={() => setView("pagamento")}
+            sacola={sacola}
+            carregando={carregandoCesta}
+            erro={erroCesta}
+            onAumentar={aumentarItemCesta}
+            onDiminuir={diminuirItemCesta}
+            onRemoverItem={removerItemCesta}
+            onBack={() => setView("restaurantes-cliente")}
+            onIrParaPagamento={() => goTo("pedido-tipo-pagamento")}
           />
         );
+      case "pedido-tipo-pagamento":
+        return (
+          <TipoPagamentoView
+            sacola={sacola}
+            restauranteId={restauranteId}
+            onBack={() => setView("cesta")}
+            onPedidoPronto={(pedido) => {
+              setPedidoAtual(pedido);
+              setView("pedido-cartao");
+            }}
+          />
+        );
+      case "pedido-cartao":
+        return (
+          <FormularioCartaoView
+            pedido={pedidoAtual}
+            onBack={() => setView("pedido-tipo-pagamento")}
+            onPagamentoConfirmado={() => {
+              setSacola(null);
+              setView("pedido-confirmado");
+            }}
+          />
+        );
+      case "pedido-confirmado":
+        return <PedidoConfirmadoView pedido={pedidoAtual} onVoltarInicio={() => goTo("pagina-principal")} />;
       case "pagamento": return <PagamentoView />;
       case "historico": return <HistoricoView onOpenOrder={openOrder} />;
       case "area-parceiro": return <AreaParceiroView onGo={goTo} onEditRestaurante={editarRestaurante} />;

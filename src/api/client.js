@@ -22,15 +22,13 @@
  * renderização, salva o token e limpa a URL.
  */
 
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  "https://entregafood-back-dev.onrender.com";
-
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const TOKEN_KEY = "entregafood_token";
 const USUARIO_KEY = "entregafood_usuario";
 
 /* ------------------------------------------------------------------ */
-/* Erro de API                                                        */
+/* Erro de API — telas usam "instanceof ApiError" pra distinguir erro   */
+/* de validação/negócio de falha de rede/servidor fora do ar.           */
 /* ------------------------------------------------------------------ */
 
 export class ApiError extends Error {
@@ -43,12 +41,11 @@ export class ApiError extends Error {
 }
 
 /* ------------------------------------------------------------------ */
-/* Fetch genérico                                                     */
+/* Fetch genérico                                                       */
 /* ------------------------------------------------------------------ */
 
 export async function apiFetch(path, options = {}) {
   const token = getToken();
-
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
@@ -60,45 +57,30 @@ export async function apiFetch(path, options = {}) {
 
   if (!res.ok) {
     const erro = await res.json().catch(() => ({}));
-
+    // FastAPI/Pydantic manda erro de validação (422) como lista em "detail"
     const detalhe = Array.isArray(erro.detail)
       ? erro.detail.map((d) => d.msg).join(" ")
       : erro.detail;
-
-    throw new ApiError(
-      detalhe || `Erro ${res.status} ao chamar ${path}`,
-      res.status,
-      erro.detail
-    );
+    throw new ApiError(detalhe || `Erro ${res.status} ao chamar ${path}`, res.status, erro.detail);
   }
-
   if (res.status === 204) return null;
-
   return res.json();
 }
 
-/* ------------------------------------------------------------------ */
-/* Sessão                                                             */
-/* ------------------------------------------------------------------ */
-
+/** Salva token + usuário de uma resposta TokenResponse do back. */
 function guardarSessao(data) {
-  if (data?.access_token) {
-    saveToken(data.access_token);
-  }
-
-  if (data?.usuario) {
-    saveUsuario(data.usuario);
-  }
-
+  if (data?.access_token) saveToken(data.access_token);
+  if (data?.usuario) saveUsuario(data.usuario);
   return data;
 }
 
+/** Remove tudo que não for dígito — mesma normalização que o back faz. */
 export function normalizarTelefone(telefone) {
   return (telefone || "").replace(/\D/g, "");
 }
 
 /* ------------------------------------------------------------------ */
-/* OAuth (Google / Facebook)                                          */
+/* OAuth (Google / Facebook)                                            */
 /* ------------------------------------------------------------------ */
 
 export function getGoogleLoginUrl() {
@@ -117,29 +99,26 @@ export function loginWithFacebook() {
   window.location.href = getFacebookLoginUrl();
 }
 
+/**
+ * Lê o token que o back devolve depois do OAuth. O auth_controller usa
+ * HASH (#oauth_token=...), mas aceitamos query string também, caso o
+ * back volte a usar ?oauth_token= / ?oauth_erro= no futuro.
+ * Retorna { token, erro }.
+ */
 export function consumeOAuthResultFromQuery() {
   const hash = window.location.hash || "";
   const params = new URLSearchParams(window.location.search);
 
   const matchHash = hash.match(/oauth_token=([^&]+)/);
-
-  const token = matchHash
-    ? decodeURIComponent(matchHash[1])
-    : params.get("oauth_token");
-
+  const token = matchHash ? decodeURIComponent(matchHash[1]) : params.get("oauth_token");
   const erro = params.get("oauth_erro");
 
   if (token || erro) {
-    if (token) {
-      saveToken(token);
-    }
-
+    if (token) saveToken(token);
     const url = new URL(window.location.href);
-
     url.hash = "";
     url.searchParams.delete("oauth_token");
     url.searchParams.delete("oauth_erro");
-
     window.history.replaceState({}, "", url.toString());
   }
 
@@ -147,150 +126,97 @@ export function consumeOAuthResultFromQuery() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Login por senha                                                    */
+/* Login por senha (e-mail OU telefone)                                 */
 /* ------------------------------------------------------------------ */
 
+/**
+ * O back aceita e-mail ou telefone. Detectamos pelo "@": se o
+ * identificador tiver arroba, mandamos como email; senão, como telefone
+ * (só os dígitos).
+ */
 export async function loginWithPassword(identificador, senha) {
   const ehEmail = String(identificador).includes("@");
-
   const corpo = ehEmail
-    ? {
-        email: identificador,
-        senha,
-      }
-    : {
-        telefone: normalizarTelefone(identificador),
-        senha,
-      };
+    ? { email: identificador, senha }
+    : { telefone: normalizarTelefone(identificador), senha };
 
-  const data = await apiFetch("/auth/login", {
-    method: "POST",
-    body: JSON.stringify(corpo),
-  });
-
+  const data = await apiFetch("/auth/login", { method: "POST", body: JSON.stringify(corpo) });
   return guardarSessao(data);
 }
 
 export async function fetchUsuarioLogado() {
-  if (!getToken()) {
-    return null;
-  }
-
+  if (!getToken()) return null;
   try {
     const usuario = await apiFetch("/auth/eu");
-
     saveUsuario(usuario);
-
     return usuario;
   } catch {
     logout();
-
     return null;
   }
 }
 
 /* ------------------------------------------------------------------ */
-/* OTP — login por telefone                                           */
+/* OTP — login por telefone                                             */
 /* ------------------------------------------------------------------ */
 
+/** POST /auth/telefone/solicitar-codigo -> { detalhe, codigo_dev } */
 export async function solicitarCodigoLoginTelefone(telefone) {
   return apiFetch("/auth/telefone/solicitar-codigo", {
     method: "POST",
-    body: JSON.stringify({
-      telefone: normalizarTelefone(telefone),
-    }),
+    body: JSON.stringify({ telefone: normalizarTelefone(telefone) }),
   });
 }
 
+/** POST /auth/telefone/verificar-codigo -> TokenResponse (já salva a sessão) */
 export async function verificarCodigoLoginTelefone(telefone, codigo) {
   const data = await apiFetch("/auth/telefone/verificar-codigo", {
     method: "POST",
-    body: JSON.stringify({
-      telefone: normalizarTelefone(telefone),
-      codigo,
-    }),
+    body: JSON.stringify({ telefone: normalizarTelefone(telefone), codigo }),
   });
-
   return guardarSessao(data);
 }
 
 /* ------------------------------------------------------------------ */
-/* OTP — cadastro por telefone                                        */
+/* OTP — cadastro por telefone                                          */
 /* ------------------------------------------------------------------ */
 
-export async function solicitarCodigoCadastroTelefone({
-  telefone,
-  tipo = "cliente",
-}) {
+/** POST /auth/telefone/cadastro/solicitar-codigo -> { detalhe, codigo_dev } */
+export async function solicitarCodigoCadastroTelefone({ telefone, tipo = "cliente" }) {
   return apiFetch("/auth/telefone/cadastro/solicitar-codigo", {
     method: "POST",
-    body: JSON.stringify({
-      telefone: normalizarTelefone(telefone),
-      tipo,
-    }),
+    body: JSON.stringify({ telefone: normalizarTelefone(telefone), tipo }),
   });
 }
 
-export async function confirmarCadastroTelefone({
-  telefone,
-  codigo,
-  nome,
-  senha,
-  tipo = "cliente",
-}) {
+/** POST /auth/telefone/cadastro/confirmar -> TokenResponse (já salva a sessão) */
+export async function confirmarCadastroTelefone({ telefone, codigo, nome, senha, tipo = "cliente" }) {
   const data = await apiFetch("/auth/telefone/cadastro/confirmar", {
     method: "POST",
-    body: JSON.stringify({
-      telefone: normalizarTelefone(telefone),
-      codigo,
-      nome,
-      senha,
-      tipo,
-    }),
+    body: JSON.stringify({ telefone: normalizarTelefone(telefone), codigo, nome, senha, tipo }),
   });
-
   return guardarSessao(data);
 }
 
 /* ------------------------------------------------------------------ */
-/* Usuários (/usuarios)                                               */
+/* Usuários (/usuarios)                                                 */
 /* ------------------------------------------------------------------ */
 
-export async function registerUsuario({
-  nome,
-  email,
-  senha,
-  telefone,
-  tipo = "cliente",
-}) {
+export async function registerUsuario({ nome, email, senha, telefone, tipo = "cliente" }) {
   await apiFetch("/usuarios", {
     method: "POST",
-    body: JSON.stringify({
-      nome,
-      email,
-      senha,
-      telefone,
-      tipo,
-    }),
+    body: JSON.stringify({ nome, email, senha, telefone, tipo }),
   });
-
+  // POST /usuarios não devolve token, só o usuário criado — loga em
+  // seguida pra já ter o JWT e o id em cache nas próximas telas.
   return loginWithPassword(email, senha);
 }
 
-export async function listarUsuarios({
-  tipo,
-  limite = 100,
-  pular = 0,
-} = {}) {
+export async function listarUsuarios({ tipo, limite = 100, pular = 0 } = {}) {
   const params = new URLSearchParams();
-
-  if (tipo) {
-    params.set("tipo", tipo);
-  }
-
+  if (tipo) params.set("tipo", tipo);
   params.set("limite", limite);
   params.set("pular", pular);
-
   return apiFetch(`/usuarios?${params.toString()}`);
 }
 
@@ -299,237 +225,97 @@ export async function obterUsuario(id) {
 }
 
 export async function atualizarUsuario(id, dados) {
-  return apiFetch(`/usuarios/${id}`, {
-    method: "PUT",
-    body: JSON.stringify(dados),
-  });
+  return apiFetch(`/usuarios/${id}`, { method: "PUT", body: JSON.stringify(dados) });
 }
 
 export async function removerUsuario(id) {
-  return apiFetch(`/usuarios/${id}`, {
-    method: "DELETE",
-  });
+  return apiFetch(`/usuarios/${id}`, { method: "DELETE" });
 }
 
+/** Namespace: usuarios.criar(...), usuarios.listar(...) etc. */
 export const usuarios = {
-  criar: (dados) =>
-    apiFetch("/usuarios", {
-      method: "POST",
-      body: JSON.stringify(dados),
-    }),
-
+  criar: (dados) => apiFetch("/usuarios", { method: "POST", body: JSON.stringify(dados) }),
   listar: listarUsuarios,
-
   obter: obterUsuario,
-
   atualizar: atualizarUsuario,
-
   remover: removerUsuario,
 };
 
 /* ------------------------------------------------------------------ */
-/* Endereços (/locais)                                                */
+/* Endereços (/locais) — o local_controller NÃO usa login, ele espera   */
+/* usuario_id explícito. Por isso guardamos o usuário em cache e        */
+/* montamos o usuario_id aqui (ver getUsuarioId abaixo).                */
 /* ------------------------------------------------------------------ */
 
 export const locais = {
-  criar: (dados) =>
-    apiFetch("/locais", {
-      method: "POST",
-      body: JSON.stringify(dados),
-    }),
-
-  listar: (usuarioId) =>
-    apiFetch(
-      usuarioId
-        ? `/locais?usuario_id=${usuarioId}`
-        : "/locais"
-    ),
-
-  obter: (id) =>
-    apiFetch(`/locais/${id}`),
-
-  atualizar: (id, dados) =>
-    apiFetch(`/locais/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(dados),
-    }),
-
-  remover: (id) =>
-    apiFetch(`/locais/${id}`, {
-      method: "DELETE",
-    }),
+  criar: (dados) => apiFetch("/locais", { method: "POST", body: JSON.stringify(dados) }),
+  listar: (usuarioId) => apiFetch(usuarioId ? `/locais?usuario_id=${usuarioId}` : "/locais"),
+  obter: (id) => apiFetch(`/locais/${id}`),
+  atualizar: (id, dados) => apiFetch(`/locais/${id}`, { method: "PUT", body: JSON.stringify(dados) }),
+  remover: (id) => apiFetch(`/locais/${id}`, { method: "DELETE" }),
 };
 
 /* ------------------------------------------------------------------ */
-/* Consultas do cliente (/consultas)                                  */
+/* Consultas do cliente (/consultas) — leitura pública, sem CRUD.        */
+/* Diferente de restaurantes/produtos (admin): só traz restaurante       */
+/* aprovado e itens disponíveis, no formato que a tela do cliente usa    */
+/* (endereço já embutido, sem CNPJ etc).                                 */
 /* ------------------------------------------------------------------ */
-
-/*
- * Leitura pública para o cliente.
- * Retorna restaurantes aprovados e itens disponíveis,
- * no formato utilizado pelas telas do cliente.
- */
 
 export const consultas = {
   restaurantes: (busca) =>
-    apiFetch(
-      `/consultas/restaurantes${
-        busca
-          ? `?busca=${encodeURIComponent(busca)}`
-          : ""
-      }`
-    ),
-
-  restaurante: (id) =>
-    apiFetch(`/consultas/restaurantes/${id}`),
-
-  cardapio: (id) =>
-    apiFetch(`/consultas/restaurantes/${id}/cardapio`),
+    apiFetch(`/consultas/restaurantes${busca ? `?busca=${encodeURIComponent(busca)}` : ""}`),
+  restaurante: (id) => apiFetch(`/consultas/restaurantes/${id}`),
+  cardapio: (id) => apiFetch(`/consultas/restaurantes/${id}/cardapio`),
 };
 
 /* ------------------------------------------------------------------ */
-/* Restaurantes (/restaurantes)                                       */
-/* ------------------------------------------------------------------ */
-
-export async function criarRestaurante(dados) {
-  return apiFetch("/restaurantes", {
-    method: "POST",
-    body: JSON.stringify(dados),
-  });
-}
-
-export async function listarRestaurantes({
-  limite = 100,
-  pular = 0,
-} = {}) {
-  const params = new URLSearchParams();
-
-  params.set("limite", limite);
-  params.set("pular", pular);
-
-  return apiFetch(`/restaurantes?${params.toString()}`);
-}
-
-export async function obterRestaurante(id) {
-  return apiFetch(`/restaurantes/${id}`);
-}
-
-export async function atualizarRestaurante(id, dados) {
-  return apiFetch(`/restaurantes/${id}`, {
-    method: "PUT",
-    body: JSON.stringify(dados),
-  });
-}
-
-export async function removerRestaurante(id) {
-  return apiFetch(`/restaurantes/${id}`, {
-    method: "DELETE",
-  });
-}
-
-export const restaurantes = {
-  criar: criarRestaurante,
-  listar: listarRestaurantes,
-  obter: obterRestaurante,
-  atualizar: atualizarRestaurante,
-  remover: removerRestaurante,
-};
-
-/* ------------------------------------------------------------------ */
-/* Produtos (/produtos)                                               */
-/* ------------------------------------------------------------------ */
-
-export const produtos = {
-  criar: (dados) =>
-    apiFetch("/produtos", {
-      method: "POST",
-      body: JSON.stringify(dados),
-    }),
-
-  listar: (restauranteId) =>
-    apiFetch(
-      restauranteId
-        ? `/produtos?restaurante_id=${restauranteId}`
-        : "/produtos"
-    ),
-
-  obter: (id) =>
-    apiFetch(`/produtos/${id}`),
-
-  atualizar: (id, dados) =>
-    apiFetch(`/produtos/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(dados),
-    }),
-
-  remover: (id) =>
-    apiFetch(`/produtos/${id}`, {
-      method: "DELETE",
-    }),
-};
-
-/* ------------------------------------------------------------------ */
-/* Consultas de restaurantes para o cliente                           */
-/* ------------------------------------------------------------------ */
-
-export async function consultarRestaurantes({
-  busca,
-  limite = 100,
-  pular = 0,
-} = {}) {
-  const params = new URLSearchParams();
-
-  if (busca) {
-    params.set("busca", busca);
-  }
-
-  params.set("limite", limite);
-  params.set("pular", pular);
-
-  return apiFetch(`/consultas/restaurantes?${params.toString()}`);
-}
-
-export async function consultarRestaurante(id) {
-  return apiFetch(`/consultas/restaurantes/${id}`);
-}
-
-export async function consultarCardapio(id) {
-  return apiFetch(`/consultas/restaurantes/${id}/cardapio`);
-}
-
-/* ------------------------------------------------------------------ */
-/* Cesta (/cesta)                                                     */
+/* Cesta (/cesta) — carrinho de compras do cliente.                     */
+/* Todas as mutações (adicionar/alterar/remover) devolvem a SACOLA       */
+/* INTEIRA atualizada, então o front sempre substitui o estado local     */
+/* inteiro pela resposta, sem precisar dar um GET extra depois.         */
 /* ------------------------------------------------------------------ */
 
 export const cesta = {
-  consultar: () =>
-    apiFetch("/cesta"),
-
-  adicionar: (produtoId, quantidade = 1) =>
-    apiFetch("/cesta/itens", {
+  obter: (clienteId) => apiFetch(`/cesta?cliente_id=${clienteId}`),
+  adicionarItem: (sacolaId, produtoId, quantidade = 1) =>
+    apiFetch(`/cesta/${sacolaId}/itens`, {
       method: "POST",
-      body: JSON.stringify({
-        produto_id: produtoId,
-        quantidade,
-      }),
+      body: JSON.stringify({ produto_id: produtoId, quantidade }),
     }),
-
-  alterarQuantidade: (produtoId, quantidade) =>
-    apiFetch(`/cesta/itens/${produtoId}`, {
-      method: "PUT",
-      body: JSON.stringify({
-        quantidade,
-      }),
-    }),
-
-  remover: (produtoId) =>
-    apiFetch(`/cesta/itens/${produtoId}`, {
-      method: "DELETE",
-    }),
+  atualizarItem: (itemId, quantidade) =>
+    apiFetch(`/cesta/itens/${itemId}`, { method: "PUT", body: JSON.stringify({ quantidade }) }),
+  removerItem: (itemId) => apiFetch(`/cesta/itens/${itemId}`, { method: "DELETE" }),
 };
 
 /* ------------------------------------------------------------------ */
-/* Token + usuário em cache                                           */
+/* Restaurantes (/restaurantes)                                         */
+/* ------------------------------------------------------------------ */
+
+export const restaurantes = {
+  criar: (dados) => apiFetch("/restaurantes", { method: "POST", body: JSON.stringify(dados) }),
+  listar: ({ limite = 100, pular = 0 } = {}) =>
+    apiFetch(`/restaurantes?limite=${limite}&pular=${pular}`),
+  obter: (id) => apiFetch(`/restaurantes/${id}`),
+  atualizar: (id, dados) => apiFetch(`/restaurantes/${id}`, { method: "PUT", body: JSON.stringify(dados) }),
+  remover: (id) => apiFetch(`/restaurantes/${id}`, { method: "DELETE" }),
+};
+
+/* ------------------------------------------------------------------ */
+/* Produtos (/produtos)                                                 */
+/* ------------------------------------------------------------------ */
+
+export const produtos = {
+  criar: (dados) => apiFetch("/produtos", { method: "POST", body: JSON.stringify(dados) }),
+  listar: (restauranteId) =>
+    apiFetch(restauranteId ? `/produtos?restaurante_id=${restauranteId}` : "/produtos"),
+  obter: (id) => apiFetch(`/produtos/${id}`),
+  atualizar: (id, dados) => apiFetch(`/produtos/${id}`, { method: "PUT", body: JSON.stringify(dados) }),
+  remover: (id) => apiFetch(`/produtos/${id}`, { method: "DELETE" }),
+};
+
+/* ------------------------------------------------------------------ */
+/* Token + usuário em cache (localStorage)                              */
 /* ------------------------------------------------------------------ */
 
 export function saveToken(token) {
@@ -545,44 +331,44 @@ export function isLoggedIn() {
 }
 
 export function saveUsuario(usuario) {
-  localStorage.setItem(
-    USUARIO_KEY,
-    JSON.stringify(usuario)
-  );
+  localStorage.setItem(USUARIO_KEY, JSON.stringify(usuario));
 }
 
 export function getUsuario() {
   try {
-    return JSON.parse(
-      localStorage.getItem(USUARIO_KEY) || "null"
-    );
+    return JSON.parse(localStorage.getItem(USUARIO_KEY) || "null");
   } catch {
     return null;
   }
 }
 
+/** Atalho pro caso mais comum: só o id do usuário logado (ou null). */
 export function getUsuarioId() {
   return getUsuario()?.id ?? null;
 }
 
+export function logout() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USUARIO_KEY);
+  localStorage.removeItem(RESTAURANTE_KEY);
+}
+
 /* ------------------------------------------------------------------ */
-/* Restaurante ativo                                                  */
+/* "Restaurante ativo" em cache — qual restaurante o parceiro logado    */
+/* está gerenciando agora. Necessário porque nem Restaurante nem        */
+/* Produto exigem usuário logado (é tudo por id explícito), então o     */
+/* front precisa lembrar sozinho qual foi criado/selecionado.           */
 /* ------------------------------------------------------------------ */
 
 const RESTAURANTE_KEY = "entregafood_restaurante";
 
 export function saveRestauranteAtivo(restaurante) {
-  localStorage.setItem(
-    RESTAURANTE_KEY,
-    JSON.stringify(restaurante)
-  );
+  localStorage.setItem(RESTAURANTE_KEY, JSON.stringify(restaurante));
 }
 
 export function getRestauranteAtivo() {
   try {
-    return JSON.parse(
-      localStorage.getItem(RESTAURANTE_KEY) || "null"
-    );
+    return JSON.parse(localStorage.getItem(RESTAURANTE_KEY) || "null");
   } catch {
     return null;
   }
@@ -593,11 +379,35 @@ export function getRestauranteAtivoId() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Logout                                                             */
+/* Pedido — o pagamento_controller.py real já existe e EXIGE um pedido  */
+/* criado antes (ele busca por pedido_id e confere o dono). Só que não   */
+/* existe controller de Pedido ainda — /pedidos abaixo é uma PROPOSTA   */
+/* (ver pedido_controller.py que te mandei) até isso ser criado no back. */
 /* ------------------------------------------------------------------ */
 
-export function logout() {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(USUARIO_KEY);
-  localStorage.removeItem(RESTAURANTE_KEY);
-}
+export const pedidos = {
+  criar: (dados) => apiFetch("/pedidos", { method: "POST", body: JSON.stringify(dados) }),
+  obter: (id) => apiFetch(`/pedidos/${id}`),
+};
+
+/* ------------------------------------------------------------------ */
+/* Pagamento — rotas REAIS, confirmadas no pagamento_controller.py.     */
+/* Hoje só "cartao" é aceito (EscolhaPagamentoIn é Literal["cartao"]).   */
+/* O cartão em si (número, nome, validade, CVV) NUNCA é enviado — o     */
+/* back só precisa do pedido_id, o pagamento é 100% simulado.           */
+/* ------------------------------------------------------------------ */
+
+export const pagamentos = {
+  /** PUT /pagamentos/pedidos/{pedido_id}/metodo — hoje só aceita "cartao" */
+  escolherTipo: (pedidoId, metodo = "cartao") =>
+    apiFetch(`/pagamentos/pedidos/${pedidoId}/metodo`, {
+      method: "PUT",
+      body: JSON.stringify({ metodo }),
+    }),
+  /** POST /pagamentos/cartao — só manda pedido_id, nada de dados do cartão */
+  pagarComCartao: (pedidoId) =>
+    apiFetch("/pagamentos/cartao", {
+      method: "POST",
+      body: JSON.stringify({ pedido_id: pedidoId, metodo: "cartao" }),
+    }),
+};
