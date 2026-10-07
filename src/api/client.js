@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Cliente de API do EntregaFood — fala com o back-end FastAPI
  * (repo: Sistema-de-Delivery-Back).
  *
@@ -182,10 +182,10 @@ export async function verificarCodigoLoginTelefone(telefone, codigo) {
 /* ------------------------------------------------------------------ */
 
 /** POST /auth/telefone/cadastro/solicitar-codigo -> { detalhe, codigo_dev } */
-export async function solicitarCodigoCadastroTelefone({ telefone, tipo = "cliente" }) {
+export async function solicitarCodigoCadastroTelefone({ nome, telefone, senha, tipo = "cliente" }) {
   return apiFetch("/auth/telefone/cadastro/solicitar-codigo", {
     method: "POST",
-    body: JSON.stringify({ telefone: normalizarTelefone(telefone), tipo }),
+    body: JSON.stringify({ nome, telefone: normalizarTelefone(telefone), senha, tipo }),
   });
 }
 
