@@ -1,21 +1,43 @@
-import React from "react";
-import { ArrowLeft, Trash2, Plus, Minus, ShoppingCart } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { ArrowLeft, Trash2, Plus, Minus, ShoppingCart, ShoppingBag } from "lucide-react";
 import EmptyState from "../../components/EmptyState";
+import { consultas } from "../../api/client";
 
 const fmt = (n) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
 
 /**
  * Visualização da Cesta — GET /cesta (feito no App.jsx, aqui só exibe).
  * Toda mutação (+ / - / excluir) devolve a sacola inteira atualizada,
- * então este componente é "burro": só mostra o que recebe em `sacola`
- * e chama os callbacks, sem guardar nenhum estado próprio.
+ * então este componente é "burro" quanto aos itens: só mostra o que
+ * recebe em `sacola` e chama os callbacks.
+ *
+ * A taxa de entrega NÃO vem da sacola (ela não tem esse campo) — busca
+ * direto do restaurante (consultas.restaurante) usando restauranteId.
+ * Hoje é só `taxa_entrega_km` usada como valor fixo (não calcula
+ * distância real) — ajustar aqui quando tiver cálculo de frete de verdade.
  */
-export default function CestaView({ sacola, carregando, erro, onAumentar, onDiminuir, onRemoverItem, onBack, onIrParaPagamento }) {
+export default function CestaView({
+  sacola, carregando, erro, restauranteId,
+  onAumentar, onDiminuir, onRemoverItem,
+  onBack, onContinuarComprando, onIrParaPagamento,
+}) {
+  const [taxaEntrega, setTaxaEntrega] = useState(0);
+
+  useEffect(() => {
+    if (!restauranteId) return;
+    consultas
+      .restaurante(restauranteId)
+      .then((r) => setTaxaEntrega(Number(r.taxa_entrega_km) || 0))
+      .catch(() => setTaxaEntrega(0));
+  }, [restauranteId]);
+
   if (carregando) {
     return <div style={{ fontFamily: "'Exo 2', sans-serif", color: "var(--muted)" }}>Carregando cesta...</div>;
   }
 
   const itens = sacola?.itens || [];
+  const subtotal = Number(sacola?.total || 0);
+  const total = subtotal + taxaEntrega;
 
   return (
     <div style={{ maxWidth: 600, margin: "0 auto" }}>
@@ -34,6 +56,9 @@ export default function CestaView({ sacola, carregando, erro, onAumentar, onDimi
       {itens.length === 0 ? (
         <div style={{ marginTop: 18 }}>
           <EmptyState title="CESTA VAZIA" subtitle="Adicione itens do cardápio de um restaurante pra vê-los aqui." />
+          <button className="ef-btn-solid" style={{ marginTop: 14 }} onClick={onContinuarComprando}>
+            <ShoppingBag size={14} /> CONTINUAR COMPRANDO
+          </button>
         </div>
       ) : (
         <>
@@ -59,14 +84,27 @@ export default function CestaView({ sacola, carregando, erro, onAumentar, onDimi
             ))}
           </div>
 
-          <div className="ef-card" style={{ padding: 18, marginTop: 18, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 700, fontSize: 14, color: "#fff" }}>Total</span>
-            <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 16, color: "var(--accent)" }}>{fmt(sacola.total)}</span>
+          <div className="ef-card" style={{ padding: 18, marginTop: 18, display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "'Exo 2', sans-serif", fontSize: 13, color: "#d8d8d8" }}>
+              <span>Subtotal</span><span>{fmt(subtotal)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "'Exo 2', sans-serif", fontSize: 13, color: "#d8d8d8" }}>
+              <span>Taxa de entrega</span><span>{taxaEntrega > 0 ? fmt(taxaEntrega) : "Grátis"}</span>
+            </div>
+            <div style={{ borderTop: "1px solid var(--border)", paddingTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 700, fontSize: 14, color: "#fff" }}>Total</span>
+              <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 16, color: "var(--accent)" }}>{fmt(total)}</span>
+            </div>
           </div>
 
-          <button className="ef-btn-solid" style={{ marginTop: 14 }} onClick={onIrParaPagamento}>
-            IR PARA O PAGAMENTO
-          </button>
+          <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+            <button className="ef-btn-outline" style={{ flex: 1, justifyContent: "center" }} onClick={onContinuarComprando}>
+              <ShoppingBag size={14} /> CONTINUAR COMPRANDO
+            </button>
+            <button className="ef-btn-solid" style={{ flex: 1 }} onClick={onIrParaPagamento}>
+              IR PARA O PAGAMENTO
+            </button>
+          </div>
         </>
       )}
     </div>

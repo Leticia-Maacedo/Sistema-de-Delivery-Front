@@ -9,7 +9,6 @@ import SystemStatus from "./components/SystemStatus";
 import InicioCategoriasView from "./views/cliente/InicioCategoriasView";
 import LoginView from "./views/cliente/LoginView";
 import CadastroDadosView from "./views/cliente/CadastroDadosView";
-import CadastroTelefoneView from "./views/cliente/CadastroTelefoneView";
 import CadastroEnderecoView from "./views/cliente/CadastroEnderecoView";
 import PaginaPrincipalView from "./views/cliente/PaginaPrincipalView";
 import RestaurantesListaView from "./views/cliente/RestaurantesListaView";
@@ -202,8 +201,7 @@ export default function App() {
     switch (view) {
       case "inicio-categorias": return <InicioCategoriasView onGo={goTo} />;
       case "login": return <LoginView onGo={goTo} erroInicial={oauthErro} />;
-      case "cadastro-dados": return <CadastroDadosView onGo={goTo} />;
-      case "cadastro-telefone": return <CadastroTelefoneView onGo={goTo} />;
+      case "cadastro-dados": return <CadastroDadosView onGo={goTo} aoCadastrar={() => goTo("cadastro-endereco")} />;
       case "cadastro-endereco": return <CadastroEnderecoView onGo={goTo} />;
       case "pagina-principal": return <PaginaPrincipalView onGo={goTo} onSelectRestaurante={openRestaurante} />;
       case "restaurantes-cliente": return <RestaurantesListaView onSelect={openRestaurante} />;
@@ -236,10 +234,12 @@ export default function App() {
             sacola={sacola}
             carregando={carregandoCesta}
             erro={erroCesta}
+            restauranteId={restauranteId}
             onAumentar={aumentarItemCesta}
             onDiminuir={diminuirItemCesta}
             onRemoverItem={removerItemCesta}
             onBack={() => setView("restaurantes-cliente")}
+            onContinuarComprando={() => setView(restauranteId ? "cardapio-restaurante" : "restaurantes-cliente")}
             onIrParaPagamento={() => goTo("pedido-tipo-pagamento")}
           />
         );
