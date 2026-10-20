@@ -9,6 +9,7 @@ import SystemStatus from "./components/SystemStatus";
 import InicioCategoriasView from "./views/cliente/InicioCategoriasView";
 import LoginView from "./views/cliente/LoginView";
 import CadastroDadosView from "./views/cliente/CadastroDadosView";
+import CadastroTelefoneView from "./views/cliente/CadastroTelefoneView";
 import CadastroEnderecoView from "./views/cliente/CadastroEnderecoView";
 import PaginaPrincipalView from "./views/cliente/PaginaPrincipalView";
 import RestaurantesListaView from "./views/cliente/RestaurantesListaView";
@@ -191,17 +192,41 @@ export default function App() {
     // "cadastro-restaurante" acessado direto do menu abra em modo edição
     // por acidente, com o id de uma navegação anterior.
     if (key === "cadastro-restaurante") setEditRestauranteId(null);
+
+    const ehCliente =
+      NAV_CLIENTE.some((n) => n.key === key) ||
+      NAV_CLIENTE_HIDDEN.some((n) => n.key === key);
+
+    const ehParceiro =
+      NAV_PARCEIRO.some((n) => n.key === key) ||
+      key === "cadastro-restaurante";
+
+    const ehAdmin =
+      NAV_ADMIN_SIDEBAR.some((n) => n.key === key) ||
+      key === "pedido-detalhe";
+
+    if (!ehCliente && !ehParceiro && !ehAdmin) {
+      console.warn(`Tela não reconhecida: ${key}`);
+      return;
+    }
+
     setView(key);
-    if (NAV_CLIENTE.some((n) => n.key === key) || NAV_CLIENTE_HIDDEN.some((n) => n.key === key)) setGroupKey("cliente");
-    else if (NAV_PARCEIRO.some((n) => n.key === key)) setGroupKey("parceiro");
-    else setGroupKey("admin");
+
+    if (ehCliente) {
+      setGroupKey("cliente");
+    } else if (ehParceiro) {
+      setGroupKey("parceiro");
+    } else {
+      setGroupKey("admin");
+    }
   };
 
   const renderView = () => {
     switch (view) {
       case "inicio-categorias": return <InicioCategoriasView onGo={goTo} />;
       case "login": return <LoginView onGo={goTo} erroInicial={oauthErro} />;
-      case "cadastro-dados": return <CadastroDadosView onGo={goTo} aoCadastrar={() => goTo("cadastro-endereco")} />;
+      case "cadastro-dados": return <CadastroDadosView onGo={goTo} />;
+      case "cadastro-telefone": return <CadastroTelefoneView onGo={goTo} />;
       case "cadastro-endereco": return <CadastroEnderecoView onGo={goTo} />;
       case "pagina-principal": return <PaginaPrincipalView onGo={goTo} onSelectRestaurante={openRestaurante} />;
       case "restaurantes-cliente": return <RestaurantesListaView onSelect={openRestaurante} />;

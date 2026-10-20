@@ -1,32 +1,40 @@
 /**
- * Utilitários de endereço que NÃO passam pelo back do EntregaFood —
- * são serviços públicos externos usados só no front pra facilitar o
- * preenchimento do formulário de endereço.
+ * Utilitários de endereço do EntregaFood.
  *
- *   ViaCEP    -> preenche rua/bairro/cidade a partir do CEP (grátis, sem chave)
- *   Nominatim -> converte o endereço em latitude/longitude (OpenStreetMap,
- *                grátis, sem chave, mas com limite de uso — trocar por
- *                Google Maps Geocoding API se o volume de cadastros crescer)
+ * ViaCEP: consulta CEP e preenche endereço.
+ * Nominatim: converte endereço em latitude e longitude.
+ *
+ * Nunca salva coordenadas 0,0 quando a geocodificação falha.
  */
 
 const VIACEP_URL = "https://viacep.com.br/ws";
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
 
-/** Busca rua/bairro/cidade/UF a partir de um CEP. Lança erro se inválido. */
 export async function buscarEnderecoPorCep(cep) {
   const limpo = (cep || "").replace(/\D/g, "");
+
   if (limpo.length !== 8) {
-    throw new Error("CEP inválido — digite os 8 números.");
+    throw new Error("CEP inválido. Digite os 8 números.");
   }
 
   let res;
+
   try {
     res = await fetch(`${VIACEP_URL}/${limpo}/json/`);
   } catch {
-    throw new Error("Não foi possível consultar o CEP agora. Tente de novo.");
+    throw new Error(
+      "Não foi possível consultar o CEP agora. Tente novamente."
+    );
+  }
+
+  if (!res.ok) {
+    throw new Error(
+      "O serviço de consulta de CEP está indisponível."
+    );
   }
 
   const dados = await res.json();
+
   if (dados.erro) {
     throw new Error("CEP não encontrado.");
   }
@@ -39,29 +47,73 @@ export async function buscarEnderecoPorCep(cep) {
   };
 }
 
-/**
- * Converte um endereço em texto para { latitude, longitude }.
- * Se não conseguir geocodificar (endereço incompleto, serviço fora do ar),
- * devolve 0/0 em vez de travar o cadastro — o back exige esses campos
- * como NOT NULL, então preferimos salvar sem coordenada exata a bloquear
- * o usuário no meio do fluxo.
- */
 export async function geocodificarEndereco(enderecoCompleto) {
+  if (!enderecoCompleto || !enderecoCompleto.trim()) {
+    throw new Error("Informe um endereço válido.");
+  }
+
+  let res;
+
   try {
     const params = new URLSearchParams({
       q: `${enderecoCompleto}, Brasil`,
       format: "json",
       limit: "1",
+      countrycodes: "br",
     });
-    const res = await fetch(`${NOMINATIM_URL}?${params.toString()}`, {
-      headers: { "Accept-Language": "pt-BR" },
+
+    res = await fetch(`${NOMINATIM_URL}?${params.toString()}`, {
+      headers: {
+        "Accept-Language": "pt-BR",
+      },
     });
-    const dados = await res.json();
-    if (dados && dados[0]) {
-      return { latitude: parseFloat(dados[0].lat), longitude: parseFloat(dados[0].lon) };
-    }
   } catch {
-    // segue pro fallback abaixo
+    throw new Error(
+      "Não foi possível consultar a localização. Verifique sua conexão."
+    );
   }
-  return { latitude: 0, longitude: 0 };
+
+  if (!res.ok) {
+    throw new Error(
+      "O serviço de localização está indisponível. Tente novamente."
+    );
+  }
+
+  let dados;
+
+  try {
+    dados = await res.json();
+  } catch {
+    throw new Error(
+      "O serviço de localização retornou uma resposta inválida."
+    );
+  }
+
+  if (!Array.isArray(dados) || dados.length === 0) {
+    throw new Error(
+      "Não encontramos as coordenadas desse endereço. Confira rua, número, bairro e cidade."
+    );
+  }
+
+  const latitude = Number(dados[0].lat);
+  const longitude = Number(dados[0].lon);
+
+  if (
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    (latitude === 0 && longitude === 0) ||
+    latitude < -90 ||
+    latitude > 90 ||
+    longitude < -180 ||
+    longitude > 180
+  ) {
+    throw new Error(
+      "As coordenadas encontradas são inválidas. Confira o endereço."
+    );
+  }
+
+  return {
+    latitude,
+    longitude,
+  };
 }

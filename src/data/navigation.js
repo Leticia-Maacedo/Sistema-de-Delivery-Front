@@ -12,9 +12,10 @@ export const NAV_CLIENTE = [
   { key: "login", label: "Entrar", Icon: LogIn },
 ];
 
-/* Telas que existem mas não aparecem no nav (acessadas via fluxo, ex: cadastro) */
+/* Telas que existem, mas não aparecem no menu. */
 export const NAV_CLIENTE_HIDDEN = [
   { key: "cadastro-dados" },
+  { key: "cadastro-telefone" },
   { key: "cadastro-endereco" },
   { key: "cardapio-restaurante" },
   { key: "produto-detalhe" },
