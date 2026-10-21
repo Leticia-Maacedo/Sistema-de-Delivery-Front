@@ -3,7 +3,7 @@ import { CheckCircle2 } from "lucide-react";
 
 const fmt = (n) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
 
-export default function PedidoConfirmadoView({ pedido, onVoltarInicio }) {
+export default function PedidoConfirmadoView({ pedido, onAcompanhar, onVoltarInicio }) {
   return (
     <div style={{ maxWidth: 420, margin: "60px auto 0", textAlign: "center" }}>
       <CheckCircle2 size={56} color="var(--accent)" />
@@ -21,9 +21,16 @@ export default function PedidoConfirmadoView({ pedido, onVoltarInicio }) {
         </div>
       )}
       <p style={{ fontFamily: "'Exo 2', sans-serif", color: "var(--muted)", fontSize: 13, marginTop: 16 }}>
-        Acompanhe o andamento na tela de Pedidos.
+        {pedido?.tipo_entrega === "retirada"
+          ? "Acompanhe até ficar pronto para retirada. O código de retirada está no acompanhamento."
+          : "Acompanhe cada etapa até a entrega. O código de entrega está no acompanhamento."}
       </p>
-      <button className="ef-btn-solid" style={{ marginTop: 20 }} onClick={onVoltarInicio}>
+      {pedido && (
+        <button className="ef-btn-solid" style={{ marginTop: 20 }} onClick={() => onAcompanhar(pedido.id)}>
+          ACOMPANHAR PEDIDO
+        </button>
+      )}
+      <button className="ef-btn-outline" style={{ marginTop: 10, width: "100%", justifyContent: "center" }} onClick={onVoltarInicio}>
         VOLTAR AO INÍCIO
       </button>
     </div>

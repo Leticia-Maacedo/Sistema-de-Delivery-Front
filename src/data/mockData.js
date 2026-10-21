@@ -190,6 +190,13 @@ export const STATUS_STYLE = {
   "Saiu para entrega": { bg: "rgba(166,255,0,0.12)", fg: "#A6FF00", dot: "#A6FF00" },
   Preparando: { bg: "rgba(230,180,60,0.14)", fg: "#E6B43C", dot: "#E6B43C" },
   Confirmado: { bg: "rgba(122,140,255,0.14)", fg: "#8C9BFF", dot: "#8C9BFF" },
+  // Rótulos reais do back (app/core/status_pedido.py — ROTULOS)
+  "Aguardando o restaurante": { bg: "rgba(138,138,138,0.14)", fg: "#B5B5B5", dot: "#B5B5B5" },
+  "Pedido aceito": { bg: "rgba(122,140,255,0.14)", fg: "#8C9BFF", dot: "#8C9BFF" },
+  "Em preparação": { bg: "rgba(230,180,60,0.14)", fg: "#E6B43C", dot: "#E6B43C" },
+  "Pronto para entrega": { bg: "rgba(166,255,0,0.12)", fg: "#A6FF00", dot: "#A6FF00" },
+  "Pronto para retirada": { bg: "rgba(166,255,0,0.12)", fg: "#A6FF00", dot: "#A6FF00" },
+  Cancelado: { bg: "rgba(230,83,76,0.14)", fg: "#E6534C", dot: "#E6534C" },
 };
 
 export const fmt = (n) => `R$ ${n.toFixed(2).replace(".", ",")}`;

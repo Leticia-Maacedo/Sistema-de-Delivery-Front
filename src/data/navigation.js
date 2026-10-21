@@ -23,10 +23,12 @@ export const NAV_CLIENTE_HIDDEN = [
   { key: "pedido-tipo-pagamento" },
   { key: "pedido-cartao" },
   { key: "pedido-confirmado" },
+  { key: "acompanhar-pedido" },
 ];
 
 export const NAV_PARCEIRO = [
   { key: "area-parceiro", label: "Área do Parceiro", Icon: Store },
+  { key: "painel-entregas", label: "Pedidos e Entregas", Icon: Truck },
   { key: "cardapios", label: "Cardápios", Icon: Package },
   { key: "avaliacoes", label: "Avaliações", Icon: Star },
 ];

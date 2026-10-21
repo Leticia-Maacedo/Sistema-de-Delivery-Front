@@ -290,6 +290,8 @@ export const cesta = {
     apiFetch(`/cesta/itens/${produtoId}`, { method: "PUT", body: JSON.stringify({ quantidade }) }),
   /** DELETE /cesta/itens/{produto_id} */
   removerItem: (produtoId) => apiFetch(`/cesta/itens/${produtoId}`, { method: "DELETE" }),
+  /** GET /cesta/resumo — subtotal, taxa pela distância e total (retirada = sem taxa) */
+  resumo: (tipoEntrega = "delivery") => apiFetch(`/cesta/resumo?tipo_entrega=${tipoEntrega}`),
 };
 
 /* ------------------------------------------------------------------ */
@@ -383,15 +385,23 @@ export function getRestauranteAtivoId() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Pedido — o pagamento_controller.py real já existe e EXIGE um pedido  */
-/* criado antes (ele busca por pedido_id e confere o dono). Só que não   */
-/* existe controller de Pedido ainda — /pedidos abaixo é uma PROPOSTA   */
-/* (ver pedido_controller.py que te mandei) até isso ser criado no back. */
+/* Pedido — rotas REAIS do pedido_controller.py (Sprint 3).              */
+/* criar: fecha a cesta (tipo_entrega "delivery" ou "retirada").         */
+/* obter: acompanhamento (itens, linha do tempo, código de entrega).     */
+/* painel / alterarStatus / confirmarEntrega: restaurante, entregador    */
+/* e admin — um usuário "cliente" recebe 403.                            */
 /* ------------------------------------------------------------------ */
 
 export const pedidos = {
   criar: (dados) => apiFetch("/pedidos", { method: "POST", body: JSON.stringify(dados) }),
+  listar: () => apiFetch("/pedidos"),
   obter: (id) => apiFetch(`/pedidos/${id}`),
+  painel: (incluirFinalizados = false) =>
+    apiFetch(`/pedidos/painel${incluirFinalizados ? "?incluir_finalizados=true" : ""}`),
+  alterarStatus: (id, status) =>
+    apiFetch(`/pedidos/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
+  confirmarEntrega: (id, codigo) =>
+    apiFetch(`/pedidos/${id}/entrega/confirmar`, { method: "POST", body: JSON.stringify({ codigo }) }),
 };
 
 /* ------------------------------------------------------------------ */

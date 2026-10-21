@@ -21,6 +21,7 @@ import FormularioCartaoView from "./views/cliente/FormularioCartaoView";
 import PedidoConfirmadoView from "./views/cliente/PedidoConfirmadoView";
 import PagamentoView from "./views/cliente/PagamentoView";
 import HistoricoView from "./views/cliente/HistoricoView";
+import AcompanharPedidoView from "./views/cliente/AcompanharPedidoView";
 
 import AreaParceiroView from "./views/parceiro/AreaParceiroView";
 import CadastroRestauranteView from "./views/parceiro/CadastroRestauranteView";
@@ -50,6 +51,12 @@ export default function App() {
   // quantidade/total na mão no front.
   const [sacola, setSacola] = useState(null);
   const [pedidoAtual, setPedidoAtual] = useState(null);
+  // Fechar Pedido (Sprint 3): tipo de entrega escolhido na cesta e o
+  // resumo (subtotal/taxa/total) calculado pelo back para esse tipo.
+  const [tipoEntrega, setTipoEntrega] = useState("delivery");
+  const [resumoCesta, setResumoCesta] = useState(null);
+  // Acompanhar Entrega (Sprint 3): pedido aberto na tela de acompanhamento.
+  const [pedidoAcompanhadoId, setPedidoAcompanhadoId] = useState(null);
   const [carregandoCesta, setCarregandoCesta] = useState(false);
   const [erroCesta, setErroCesta] = useState("");
 
@@ -174,6 +181,11 @@ export default function App() {
     setView("cardapio-restaurante");
   };
 
+  const acompanharPedido = (id) => {
+    setPedidoAcompanhadoId(id);
+    goTo("acompanhar-pedido");
+  };
+
   const openProdutoDetalhe = (id) => {
     setProdutoId(id);
     setView("produto-detalhe");
@@ -259,20 +271,25 @@ export default function App() {
             sacola={sacola}
             carregando={carregandoCesta}
             erro={erroCesta}
-            restauranteId={restauranteId}
+            tipoEntrega={tipoEntrega}
+            onTipoEntregaChange={setTipoEntrega}
             onAumentar={aumentarItemCesta}
             onDiminuir={diminuirItemCesta}
             onRemoverItem={removerItemCesta}
             onBack={() => setView("restaurantes-cliente")}
             onContinuarComprando={() => setView(restauranteId ? "cardapio-restaurante" : "restaurantes-cliente")}
-            onIrParaPagamento={() => goTo("pedido-tipo-pagamento")}
+            onIrParaPagamento={(resumo) => {
+              setResumoCesta(resumo);
+              goTo("pedido-tipo-pagamento");
+            }}
           />
         );
       case "pedido-tipo-pagamento":
         return (
           <TipoPagamentoView
             sacola={sacola}
-            restauranteId={restauranteId}
+            resumo={resumoCesta}
+            tipoEntrega={tipoEntrega}
             onBack={() => setView("cesta")}
             onPedidoPronto={(pedido) => {
               setPedidoAtual(pedido);
@@ -292,11 +309,20 @@ export default function App() {
           />
         );
       case "pedido-confirmado":
-        return <PedidoConfirmadoView pedido={pedidoAtual} onVoltarInicio={() => goTo("pagina-principal")} />;
+        return (
+          <PedidoConfirmadoView
+            pedido={pedidoAtual}
+            onAcompanhar={acompanharPedido}
+            onVoltarInicio={() => goTo("pagina-principal")}
+          />
+        );
+      case "acompanhar-pedido":
+        return <AcompanharPedidoView pedidoId={pedidoAcompanhadoId} onBack={() => goTo("historico")} />;
       case "pagamento": return <PagamentoView />;
-      case "historico": return <HistoricoView onOpenOrder={openOrder} />;
+      case "historico": return <HistoricoView onAcompanhar={acompanharPedido} onGo={goTo} />;
       case "area-parceiro": return <AreaParceiroView onGo={goTo} onEditRestaurante={editarRestaurante} />;
       case "cadastro-restaurante": return <CadastroRestauranteView restauranteId={editRestauranteId} onGo={goTo} />;
+      case "painel-entregas": return <EntregasView />;
       case "cardapios": return <CardapiosView onGo={goTo} />;
       case "avaliacoes": return <AvaliacoesView />;
       case "dashboard": return <DashboardView onOpenOrder={openOrder} />;

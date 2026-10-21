@@ -15,34 +15,26 @@ const METODOS = [
 /**
  * Escolha do tipo de pagamento do pedido.
  *
- * Fluxo real (pagamento_controller.py):
- * 1. Cria o pedido — POST /pedidos (proposta, ver pedido_controller.py
- *    que ainda não existe no back).
+ * Fluxo real:
+ * 1. Cria o pedido — POST /pedidos com o tipo de entrega escolhido na
+ *    cesta. O back recalcula restaurante, taxa e total a partir da cesta.
  * 2. Confirma o método — PUT /pagamentos/pedidos/{id}/metodo.
  * 3. Segue pro formulário do cartão, que processa o pagamento de verdade.
  */
-export default function TipoPagamentoView({ sacola, restauranteId, onBack, onPedidoPronto }) {
+export default function TipoPagamentoView({ sacola, resumo, tipoEntrega, onBack, onPedidoPronto }) {
   const [metodo, setMetodo] = useState("cartao");
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
 
-  const total = Number(sacola?.total || 0);
+  const total = Number(resumo?.total ?? sacola?.total ?? 0);
 
   const continuar = async () => {
     setErro("");
-    if (!restauranteId) {
-      setErro("Não encontramos o restaurante do pedido. Volte pro cardápio e tente de novo.");
-      return;
-    }
-
     setEnviando(true);
     try {
       const pedido = await pedidos.criar({
-        restaurante_id: restauranteId,
-        tipo_entrega: "delivery",
+        tipo_entrega: tipoEntrega,
         forma_pagamento: "cartao",
-        valor_total: total,
-        taxa_entrega: 0,
       });
       await pagamentos.escolherTipo(pedido.id, "cartao");
       onPedidoPronto(pedido);
@@ -64,6 +56,7 @@ export default function TipoPagamentoView({ sacola, restauranteId, onBack, onPed
       </h1>
       <p style={{ fontFamily: "'Exo 2', sans-serif", color: "var(--muted)", fontSize: 13, marginTop: 6 }}>
         Total do pedido: <span style={{ color: "var(--accent)", fontWeight: 700 }}>{fmt(total)}</span>
+        {" · "}{tipoEntrega === "retirada" ? "Retirada no balcão" : "Entrega no seu endereço"}
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 18 }}>
