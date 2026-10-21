@@ -2,8 +2,9 @@
 import { Truck, ArrowLeft, Search, Bell, MessageCircle } from "lucide-react";
 
 import { NAV_CLIENTE, NAV_CLIENTE_HIDDEN, NAV_PARCEIRO, NAV_ADMIN_SIDEBAR, ADMIN_TITLES } from "./data/navigation";
-import { consumeOAuthResultFromQuery, isLoggedIn, cesta, ApiError } from "./api/client";
+import { consumeOAuthResultFromQuery, isLoggedIn, cesta, ApiError, getUsuario, fetchUsuarioLogado } from "./api/client";
 import ClientSidebar from "./components/ClientSidebar";
+import { exibicaoUsuario } from "./data/usuarioExibicao";
 import SystemStatus from "./components/SystemStatus";
 
 import InicioCategoriasView from "./views/cliente/InicioCategoriasView";
@@ -44,6 +45,24 @@ export default function App() {
   const [editRestauranteId, setEditRestauranteId] = useState(null);
   const [produtoId, setProdutoId] = useState(null);
   const [oauthErro, setOauthErro] = useState("");
+  // Usuário logado (nome e tipo) mostrado no menu e na saudação.
+  const [usuario, setUsuario] = useState(() => (isLoggedIn() ? getUsuario() : null));
+
+  // Mantém o usuário em dia a cada troca de tela: pega o salvo no login ou,
+  // se só houver o token (ex.: login social), busca em GET /auth/eu.
+  useEffect(() => {
+    if (!isLoggedIn()) {
+      if (usuario) setUsuario(null);
+      return;
+    }
+    const salvo = getUsuario();
+    if (salvo) {
+      if (salvo.id !== usuario?.id) setUsuario(salvo);
+    } else {
+      fetchUsuarioLogado().then(setUsuario);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view]);
 
   // Cesta (carrinho) do cliente, vindo de verdade do back (GET /cesta).
   // Toda mutação (+ / - / excluir) devolve a sacola inteira atualizada,
@@ -240,7 +259,7 @@ export default function App() {
       case "cadastro-dados": return <CadastroDadosView onGo={goTo} />;
       case "cadastro-telefone": return <CadastroTelefoneView onGo={goTo} />;
       case "cadastro-endereco": return <CadastroEnderecoView onGo={goTo} />;
-      case "pagina-principal": return <PaginaPrincipalView onGo={goTo} onSelectRestaurante={openRestaurante} />;
+      case "pagina-principal": return <PaginaPrincipalView usuario={usuario} onGo={goTo} onSelectRestaurante={openRestaurante} />;
       case "restaurantes-cliente": return <RestaurantesListaView onSelect={openRestaurante} />;
       case "cardapio-restaurante":
         return (
@@ -387,10 +406,10 @@ export default function App() {
                 <Bell size={17} color="var(--muted)" />
                 <MessageCircle size={17} color="var(--muted)" />
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--accent2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>L</div>
+                  <div style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--accent2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>{exibicaoUsuario(usuario).inicial}</div>
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 600 }}>Leticia</div>
-                    <div style={{ fontSize: 10, color: "var(--muted)" }}>ADMIN</div>
+                    <div style={{ fontSize: 12, fontWeight: 600 }}>{exibicaoUsuario(usuario).primeiroNome || "Visitante"}</div>
+                    <div style={{ fontSize: 10, color: "var(--muted)" }}>{exibicaoUsuario(usuario).tipo.toUpperCase()}</div>
                   </div>
                 </div>
               </div>
@@ -400,7 +419,7 @@ export default function App() {
         </>
       ) : (
         <>
-          <ClientSidebar view={view} onGo={goTo} />
+          <ClientSidebar view={view} onGo={goTo} usuario={usuario} />
           <main style={{ flex: 1, position: "relative", padding: "28px 32px" }}>
             {renderView()}
             <SystemStatus />

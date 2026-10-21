@@ -1,12 +1,15 @@
 import React from "react";
 import { Truck, Circle } from "lucide-react";
 import { NAV_CLIENTE, NAV_PARCEIRO } from "../data/navigation";
+import { exibicaoUsuario } from "../data/usuarioExibicao";
 
 /**
  * Sidebar única para as áreas Cliente + Parceiro (agrupadas com um rótulo
  * cada, como no protótipo). A área Admin tem a sua própria sidebar, à parte.
+ * O rodapé mostra o usuário logado (nome e tipo), ou "Visitante".
  */
-export default function ClientSidebar({ view, onGo }) {
+export default function ClientSidebar({ view, onGo, usuario }) {
+  const eu = exibicaoUsuario(usuario);
   return (
     <aside
       style={{
@@ -31,11 +34,11 @@ export default function ClientSidebar({ view, onGo }) {
 
       <div className="ef-card" style={{ padding: 12, marginTop: "auto", display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Orbitron', sans-serif", fontSize: 12, color: "#0D0D0D", fontWeight: 700 }}>
-          L
+          {eu.inicial}
         </div>
-        <div>
-          <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 12, color: "#fff" }}>Leticia</div>
-          <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 10, color: "var(--muted)" }}>Cliente</div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 12, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{eu.nome}</div>
+          <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 10, color: "var(--muted)" }}>{eu.tipo}</div>
         </div>
       </div>
     </aside>

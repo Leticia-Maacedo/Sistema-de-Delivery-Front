@@ -1,15 +1,19 @@
 import React from "react";
 import { Bell, Search } from "lucide-react";
 import { CATEGORIES, RESTAURANTS } from "../../data/mockData";
+import { exibicaoUsuario } from "../../data/usuarioExibicao";
 
-export default function PaginaPrincipalView({ onGo, onSelectRestaurante }) {
+export default function PaginaPrincipalView({ usuario, onGo, onSelectRestaurante }) {
+  const { primeiroNome } = exibicaoUsuario(usuario);
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", display: "flex", flexDirection: "column", gap: 22 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
-          <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 15, color: "#fff" }}>Olá, Leticia! 👋</span>
+          <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 15, color: "#fff" }}>
+            {primeiroNome ? `Olá, ${primeiroNome}! 👋` : "Olá! 👋"}
+          </span>
           <p style={{ fontFamily: "'Exo 2', sans-serif", color: "var(--muted)", fontSize: 12, marginTop: 6 }}>
-            Pronta pra fazer seu dia mais gostoso?
+            Que tal fazer seu dia mais gostoso?
           </p>
         </div>
         <Bell size={18} color="var(--accent)" />
