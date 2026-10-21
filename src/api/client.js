@@ -348,6 +348,22 @@ export function getUsuario() {
   }
 }
 
+/**
+ * Id do usuário dono do token atual (campo "sub" do JWT), ou null.
+ * Serve pra conferir se o usuário salvo no navegador é o mesmo do token
+ * (ex.: depois de um login social, que grava só o token).
+ */
+export function getTokenUsuarioId() {
+  const token = getToken();
+  if (!token) return null;
+  try {
+    const payload = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    return Number(JSON.parse(atob(payload)).sub) || null;
+  } catch {
+    return null;
+  }
+}
+
 /** Atalho pro caso mais comum: só o id do usuário logado (ou null). */
 export function getUsuarioId() {
   return getUsuario()?.id ?? null;

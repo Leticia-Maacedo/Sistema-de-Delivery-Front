@@ -2,7 +2,7 @@
 import { Truck, ArrowLeft, Search, Bell, MessageCircle } from "lucide-react";
 
 import { NAV_CLIENTE, NAV_CLIENTE_HIDDEN, NAV_PARCEIRO, NAV_ADMIN_SIDEBAR, ADMIN_TITLES } from "./data/navigation";
-import { consumeOAuthResultFromQuery, isLoggedIn, cesta, ApiError, getUsuario, fetchUsuarioLogado } from "./api/client";
+import { consumeOAuthResultFromQuery, isLoggedIn, cesta, ApiError, getUsuario, getTokenUsuarioId, fetchUsuarioLogado } from "./api/client";
 import ClientSidebar from "./components/ClientSidebar";
 import { exibicaoUsuario } from "./data/usuarioExibicao";
 import SystemStatus from "./components/SystemStatus";
@@ -46,17 +46,21 @@ export default function App() {
   const [produtoId, setProdutoId] = useState(null);
   const [oauthErro, setOauthErro] = useState("");
   // Usuário logado (nome e tipo) mostrado no menu e na saudação.
-  const [usuario, setUsuario] = useState(() => (isLoggedIn() ? getUsuario() : null));
+  const [usuario, setUsuario] = useState(() => {
+    const salvo = isLoggedIn() ? getUsuario() : null;
+    return salvo && salvo.id === getTokenUsuarioId() ? salvo : null;
+  });
 
-  // Mantém o usuário em dia a cada troca de tela: pega o salvo no login ou,
-  // se só houver o token (ex.: login social), busca em GET /auth/eu.
+  // Mantém o usuário em dia a cada troca de tela: usa o salvo no login
+  // quando ele é o dono do token; senão (login social, ou o token trocou
+  // e ficou o usuário de outra sessão) busca em GET /auth/eu.
   useEffect(() => {
     if (!isLoggedIn()) {
       if (usuario) setUsuario(null);
       return;
     }
     const salvo = getUsuario();
-    if (salvo) {
+    if (salvo && salvo.id === getTokenUsuarioId()) {
       if (salvo.id !== usuario?.id) setUsuario(salvo);
     } else {
       fetchUsuarioLogado().then(setUsuario);
