@@ -45,6 +45,42 @@ Por padrão, o front conversa com a API em `http://localhost:8000`. Se a sua API
 VITE_API_URL=http://localhost:8000
 ```
 
+Para usar a API publicada no Render (sem subir o back-end local), coloque `VITE_API_URL=https://entregafood-back-dev.onrender.com`.
+
+---
+
+## Publicar o front (Render, site estático gratuito)
+
+O arquivo [`render.yaml`](render.yaml) já tem toda a configuração: build com `npm ci && npm run build`, publicação da pasta `dist`, branch `DEV` e a variável `VITE_API_URL` apontando para a API do Render. A cada push na `DEV`, o Render publica de novo sozinho.
+
+### 1. Criar o site (quem tiver conta no Render; o site estático é gratuito)
+
+1. [dashboard.render.com](https://dashboard.render.com) → **New** → **Blueprint**.
+2. Conectar o GitHub e escolher o repositório **Sistema-de-Delivery-Front**, branch **DEV**.
+3. O Render lê o `render.yaml` e mostra o serviço **entregafood-front** (Static Site). Clicar em **Apply**.
+4. Ao terminar, o endereço aparece no topo do serviço, algo como `https://entregafood-front.onrender.com`. (Se o nome já estiver em uso, o Render acrescenta um sufixo; use o endereço que ele mostrar.)
+
+> O front pode ficar na conta de qualquer membro do grupo: ele só precisa do endereço público da API, não de acesso ao serviço da API.
+
+### 2. Liberar o endereço novo na API (quem administra o serviço da API no Render)
+
+No serviço **entregafood-back-dev** → **Environment**:
+
+| Variável | Valor |
+|---|---|
+| `CORS_ORIGINS` | `http://localhost:5173,https://entregafood-front.onrender.com` (o endereço do passo 1; separado por vírgula, sem barra no final) |
+| `FRONTEND_URL` | `https://entregafood-front.onrender.com` (para onde o login com Google/Facebook devolve o usuário) |
+
+Salvar → a API reinicia sozinha. Sem o `CORS_ORIGINS`, o site abre mas não consegue falar com a API (erro de CORS no console do navegador).
+
+### 3. Login social (só se for usar Google/Facebook)
+
+Os retornos do OAuth continuam na API (`/auth/google/callback` e `/auth/facebook/callback`), então não mudam. Mas, como o `FRONTEND_URL` agora é o site publicado, quem rodar o front local e entrar pelo Google/Facebook volta para o site publicado.
+
+### 4. Conferir
+
+Abrir o endereço do site, entrar com uma conta e fazer um pedido. A primeira chamada pode levar até 1 minuto, porque a API gratuita do Render "dorme" quando fica parada.
+
 ---
 
 ## Fluxo da aplicação

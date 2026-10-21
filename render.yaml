@@ -1,0 +1,30 @@
+# Publicacao do front no Render como site estatico (plano gratuito).
+# Render > New > Blueprint > escolher este repositorio: o Render le este
+# arquivo e cria o site. Passo a passo no README ("Publicar o front").
+services:
+  - type: web
+    runtime: static
+    name: entregafood-front
+    branch: DEV
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    pullRequestPreviewsEnabled: false
+    envVars:
+      # A URL da API entra no build (o Vite substitui import.meta.env.VITE_API_URL).
+      - key: VITE_API_URL
+        value: https://entregafood-back-dev.onrender.com
+      - key: NODE_VERSION
+        value: "20"
+    routes:
+      # O app tem uma pagina so; qualquer caminho abre o index.html.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      # Arquivos com hash no nome podem ficar em cache; o index.html nao.
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache
