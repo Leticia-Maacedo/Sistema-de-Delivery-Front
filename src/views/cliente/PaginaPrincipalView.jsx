@@ -163,18 +163,6 @@ export default function PaginaPrincipalView({ usuario, onGo, onSelectRestaurante
           </div>
         )}
       </div>
-
-      <div className="ef-card" style={{ padding: 18, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <span style={{ ...texto, fontWeight: 700, fontSize: 13, color: "var(--accent)" }}>
-            DESCONTO NO PRIMEIRO PEDIDO!
-          </span>
-          <div style={{ ...texto, fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
-            USE: <b style={{ color: "#fff" }}>ENTREGAFOOD10</b>
-          </div>
-        </div>
-        <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 14, color: "var(--accent)" }}>10% OFF</span>
-      </div>
     </div>
   );
 }
