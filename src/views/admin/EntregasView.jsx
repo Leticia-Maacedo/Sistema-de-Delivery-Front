@@ -2,12 +2,15 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Truck, Store, Bike, KeyRound, RefreshCw, XCircle, ArrowRight } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge";
 import EmptyState from "../../components/EmptyState";
+import PageHeader from "../../components/PageHeader";
 import { pedidos, ApiError } from "../../api/client";
 
 const fmt = (n) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
 const hora = (iso) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 const INTERVALO_ATUALIZACAO_MS = 10000;
 const CANCELAVEIS = ["aguardando_aceite", "aceito"];
+// O entregador só vê entregas (não retiradas) prontas para sair, em andamento ou já entregues.
+const STATUS_ENTREGADOR = ["pronto_para_entrega", "em_transito", "entregue"];
 
 /**
  * Painel de entregas (Sprint 3 — Acompanhar Entrega).
@@ -18,7 +21,7 @@ const CANCELAVEIS = ["aguardando_aceite", "aceito"];
  * é conferido no back (app/core/status_pedido.py): o restaurante aceita,
  * prepara e deixa pronto; o entregador sai para entrega e confirma.
  */
-export default function EntregasView() {
+export default function EntregasView({ titulo }) {
   const [lista, setLista] = useState(null);
   const [selId, setSelId] = useState(null);
   const [detalhe, setDetalhe] = useState(null);
@@ -30,7 +33,10 @@ export default function EntregasView() {
 
   const carregarLista = useCallback(async () => {
     try {
-      const dados = await pedidos.painel(incluirFinalizados);
+      const todos = await pedidos.painel(incluirFinalizados);
+      const dados = titulo === "ENTREGAS"
+        ? todos.filter((p) => p.tipo_entrega === "delivery" && STATUS_ENTREGADOR.includes(p.status))
+        : todos;
       setLista(dados);
       setErro("");
       setSelId((atual) => (atual && dados.some((p) => p.id === atual) ? atual : dados[0]?.id ?? null));
@@ -38,7 +44,7 @@ export default function EntregasView() {
       setLista([]);
       setErro(e instanceof ApiError ? e.message : "Não foi possível carregar o painel.");
     }
-  }, [incluirFinalizados]);
+  }, [incluirFinalizados, titulo]);
 
   const carregarDetalhe = useCallback(async (id) => {
     if (!id) {
@@ -106,6 +112,15 @@ export default function EntregasView() {
 
   return (
     <div>
+      {titulo && (
+        <div style={{ marginBottom: 18 }}>
+          <PageHeader
+            Icon={titulo === "ENTREGAS" ? Truck : Store}
+            title={titulo}
+            subtitle={titulo === "ENTREGAS" ? "Pedidos prontos para sair e entregas em andamento" : "Pedidos do seu restaurante"}
+          />
+        </div>
+      )}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
         <label style={{ ...texto, fontSize: 12, color: "#d8d8d8", display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
           <input type="checkbox" checked={incluirFinalizados} onChange={(e) => setIncluirFinalizados(e.target.checked)} />

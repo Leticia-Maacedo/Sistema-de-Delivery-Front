@@ -1,8 +1,8 @@
 ﻿import React, { useState, useEffect } from "react";
 import { Truck, ArrowLeft, Search, Bell, MessageCircle } from "lucide-react";
 
-import { NAV_CLIENTE, NAV_CLIENTE_HIDDEN, NAV_PARCEIRO, NAV_ADMIN_SIDEBAR, ADMIN_TITLES } from "./data/navigation";
-import { consumeOAuthResultFromQuery, isLoggedIn, cesta, ApiError, getUsuario, getTokenUsuarioId, fetchUsuarioLogado } from "./api/client";
+import { NAV_ADMIN_SIDEBAR, ADMIN_TITLES, telaPermitida } from "./data/navigation";
+import { consumeOAuthResultFromQuery, isLoggedIn, cesta, ApiError, getUsuario, getTokenUsuarioId, fetchUsuarioLogado, logout } from "./api/client";
 import ClientSidebar from "./components/ClientSidebar";
 import { exibicaoUsuario } from "./data/usuarioExibicao";
 import SystemStatus from "./components/SystemStatus";
@@ -38,7 +38,6 @@ import FuncionalidadesView from "./views/admin/FuncionalidadesView";
 import EmptyState from "./components/EmptyState";
 
 export default function App() {
-  const [groupKey, setGroupKey] = useState("cliente");
   const [view, setView] = useState("inicio-categorias");
   const [orderId, setOrderId] = useState(null);
   const [restauranteId, setRestauranteId] = useState(null);
@@ -106,9 +105,9 @@ export default function App() {
   // login/cadastro) — não dá pra depender só do [] porque o login acontece
   // bem depois do primeiro render.
   useEffect(() => {
-    if (isLoggedIn() && !sacola) carregarCesta();
+    if (isLoggedIn() && usuario?.tipo === "cliente" && !sacola) carregarCesta();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view]);
+  }, [view, usuario]);
 
   // Inclusão de produto na cesta — POST /cesta/itens (autenticado, sem
   // precisar saber o id da sacola: o back acha/cria pelo token).
@@ -182,14 +181,11 @@ export default function App() {
   useEffect(() => {
     const { token, erro } = consumeOAuthResultFromQuery();
     if (token) {
-      setGroupKey("cliente");
       setView("pagina-principal");
     } else if (erro) {
       setOauthErro(erro);
-      setGroupKey("cliente");
       setView("login");
     } else if (isLoggedIn()) {
-      setGroupKey("cliente");
       setView("pagina-principal");
     }
   }, []);
@@ -227,39 +223,37 @@ export default function App() {
     // "cadastro-restaurante" acessado direto do menu abra em modo edição
     // por acidente, com o id de uma navegação anterior.
     if (key === "cadastro-restaurante") setEditRestauranteId(null);
-
-    const ehCliente =
-      NAV_CLIENTE.some((n) => n.key === key) ||
-      NAV_CLIENTE_HIDDEN.some((n) => n.key === key);
-
-    const ehParceiro =
-      NAV_PARCEIRO.some((n) => n.key === key) ||
-      key === "cadastro-restaurante";
-
-    const ehAdmin =
-      NAV_ADMIN_SIDEBAR.some((n) => n.key === key) ||
-      key === "pedido-detalhe";
-
-    if (!ehCliente && !ehParceiro && !ehAdmin) {
-      console.warn(`Tela não reconhecida: ${key}`);
-      return;
-    }
-
+    // A regra de papel (efeito abaixo) corrige telas que o usuário não pode abrir.
     setView(key);
+  };
 
-    if (ehCliente) {
-      setGroupKey("cliente");
-    } else if (ehParceiro) {
-      setGroupKey("parceiro");
-    } else {
-      setGroupKey("admin");
-    }
+  // Papel de quem está usando: visitante, cliente, restaurante, entregador
+  // ou admin. null = logado, mas o usuário ainda está carregando.
+  const papel = !isLoggedIn() ? "visitante" : usuario?.tipo || null;
+
+  // Cada papel só abre as próprias telas (data/navigation.js). Ex.: depois
+  // do login, o restaurante vai direto para o painel de pedidos; o cliente
+  // não abre o Portal do Parceiro; o visitante que abre a cesta vai ao login.
+  useEffect(() => {
+    if (!papel) return;
+    const destino = telaPermitida(papel, view);
+    if (destino !== view) setView(destino);
+  }, [papel, view]);
+
+  const sair = () => {
+    logout();
+    setUsuario(null);
+    setSacola(null);
+    setPedidoAtual(null);
+    setResumoCesta(null);
+    setView("inicio-categorias");
   };
 
   const renderView = () => {
     switch (view) {
       case "inicio-categorias": return <InicioCategoriasView onGo={goTo} />;
       case "login": return <LoginView onGo={goTo} erroInicial={oauthErro} />;
+      case "login-parceiro": return <LoginView onGo={goTo} parceiro />;
       case "cadastro-dados": return <CadastroDadosView onGo={goTo} />;
       case "cadastro-telefone": return <CadastroTelefoneView onGo={goTo} />;
       case "cadastro-endereco": return <CadastroEnderecoView onGo={goTo} />;
@@ -345,7 +339,7 @@ export default function App() {
       case "historico": return <HistoricoView onAcompanhar={acompanharPedido} onGo={goTo} />;
       case "area-parceiro": return <AreaParceiroView onGo={goTo} onEditRestaurante={editarRestaurante} />;
       case "cadastro-restaurante": return <CadastroRestauranteView restauranteId={editRestauranteId} onGo={goTo} />;
-      case "painel-entregas": return <EntregasView />;
+      case "painel-entregas": return <EntregasView titulo={papel === "entregador" ? "ENTREGAS" : "PEDIDOS"} />;
       case "cardapios": return <CardapiosView onGo={goTo} />;
       case "avaliacoes": return <AvaliacoesView />;
       case "dashboard": return <DashboardView onOpenOrder={openOrder} />;
@@ -358,7 +352,7 @@ export default function App() {
     }
   };
 
-  const isAdmin = groupKey === "admin";
+  const isAdmin = papel === "admin";
   const adminTitle = ADMIN_TITLES[view] || ADMIN_TITLES.dashboard;
 
   return (
@@ -391,8 +385,8 @@ export default function App() {
                 </button>
               ))}
             </nav>
-            <button onClick={() => goTo("inicio-categorias")} className="ef-btn-outline" style={{ marginTop: "auto", justifyContent: "center" }}>
-              <ArrowLeft size={14} /> SAIR DO ADMIN
+            <button onClick={sair} className="ef-btn-outline" style={{ marginTop: "auto", justifyContent: "center" }}>
+              <ArrowLeft size={14} /> SAIR
             </button>
           </aside>
 
@@ -423,7 +417,7 @@ export default function App() {
         </>
       ) : (
         <>
-          <ClientSidebar view={view} onGo={goTo} usuario={usuario} />
+          <ClientSidebar view={view} onGo={goTo} usuario={usuario} papel={papel || "visitante"} onSair={sair} />
           <main style={{ flex: 1, position: "relative", padding: "28px 32px" }}>
             {renderView()}
             <SystemStatus />

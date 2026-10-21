@@ -10,9 +10,15 @@ import {
   ApiError,
 } from "../../api/client";
 
+/**
+ * Login. Com `parceiro`, é a entrada do Portal do Parceiro (restaurante e
+ * entregador): mesmo login por e-mail/telefone, sem login social; depois de
+ * entrar, o App leva cada tipo de usuário para a sua própria área.
+ */
 export default function LoginView({
   onGo,
   erroInicial = "",
+  parceiro = false,
 }) {
   const [modo, setModo] = useState("senha");
 
@@ -149,7 +155,7 @@ export default function LoginView({
             letterSpacing: 1,
           }}
         >
-          SISTEMA DE DELIVERY
+          {parceiro ? "PORTAL DO PARCEIRO · RESTAURANTES E ENTREGADORES" : "SISTEMA DE DELIVERY"}
         </p>
       </div>
 
@@ -413,6 +419,8 @@ export default function LoginView({
           </>
         )}
 
+        {!parceiro && (
+          <>
         <div
           style={{
             display: "flex",
@@ -471,6 +479,8 @@ export default function LoginView({
             FACEBOOK
           </button>
         </div>
+          </>
+        )}
 
         <span
           style={{
@@ -480,7 +490,7 @@ export default function LoginView({
             textAlign: "center",
           }}
         >
-          Ainda não tem conta?{" "}
+          {parceiro ? "Quer ser parceiro?" : "Ainda não tem conta?"}{" "}
           <span
             style={{
               color: "var(--accent)",
@@ -491,7 +501,24 @@ export default function LoginView({
               onGo("cadastro-dados")
             }
           >
-            Cadastre-se
+            {parceiro ? "Cadastre seu restaurante ou seja entregador" : "Cadastre-se"}
+          </span>
+        </span>
+
+        <span
+          style={{
+            fontFamily: "'Exo 2', sans-serif",
+            fontSize: 12,
+            color: "var(--muted)",
+            textAlign: "center",
+          }}
+        >
+          {parceiro ? "É cliente?" : "É restaurante ou entregador?"}{" "}
+          <span
+            style={{ color: "var(--accent)", cursor: "pointer", textDecoration: "underline" }}
+            onClick={() => onGo(parceiro ? "login" : "login-parceiro")}
+          >
+            {parceiro ? "Entrar como cliente" : "Acesse o Portal do Parceiro"}
           </span>
         </span>
       </div>
