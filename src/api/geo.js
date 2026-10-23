@@ -47,6 +47,25 @@ export async function buscarEnderecoPorCep(cep) {
   };
 }
 
+/**
+ * Coordenadas da rua pelo CEP (AwesomeAPI, base dos Correios com
+ * localização). Cobre ruas que ainda não estão no OpenStreetMap.
+ */
+async function coordenadasPorCep(cep) {
+  const limpo = (cep || "").replace(/\D/g, "");
+  if (limpo.length !== 8) return null;
+  try {
+    const res = await fetch(`https://cep.awesomeapi.com.br/json/${limpo}`);
+    if (!res.ok) return null;
+    const dados = await res.json();
+    const latitude = Number(dados.lat);
+    const longitude = Number(dados.lng);
+    return Number.isFinite(latitude) && Number.isFinite(longitude) && latitude && longitude ? { latitude, longitude } : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Uma busca no Nominatim; devolve { latitude, longitude } ou null. */
 async function buscarNominatim(parametros) {
   let res;
@@ -81,8 +100,9 @@ async function buscarNominatim(parametros) {
  * "Rua, 123 - Complemento, Bairro, Cidade - UF".
  *
  * A busca por texto do Nominatim costuma falhar com complemento e bairro,
- * então tentamos em ordem: busca estruturada (número + rua, cidade, UF),
- * texto sem complemento/bairro, só a rua na cidade e, por último, o CEP.
+ * e há ruas que nem estão no OpenStreetMap. Tentamos em ordem: busca
+ * estruturada (número + rua, cidade, UF), coordenadas da rua pelo CEP,
+ * texto sem complemento/bairro, só a rua na cidade e o CEP no Nominatim.
  */
 export async function geocodificarEndereco(enderecoCompleto, cep = "") {
   if (!enderecoCompleto || !enderecoCompleto.trim()) {
@@ -105,10 +125,16 @@ export async function geocodificarEndereco(enderecoCompleto, cep = "") {
     tentativas.push({ postalcode: `${cepDigitos.slice(0, 5)}-${cepDigitos.slice(5)}`, country: "Brasil" });
   }
 
-  for (const parametros of tentativas) {
+  for (const [i, parametros] of tentativas.entries()) {
     const ponto = await buscarNominatim(parametros);
     if (ponto) return ponto;
+    if (i === 0) {
+      const pelaRua = await coordenadasPorCep(cep);
+      if (pelaRua) return pelaRua;
+    }
   }
+  const pelaRua = await coordenadasPorCep(cep);
+  if (pelaRua) return pelaRua;
   throw new Error(
     "Não encontramos as coordenadas desse endereço. Confira rua, número, bairro e cidade."
   );

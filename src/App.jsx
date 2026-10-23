@@ -289,6 +289,7 @@ export default function App() {
       case "login": return <LoginView onGo={goTo} erroInicial={oauthErro} />;
       case "login-parceiro": return <LoginView onGo={goTo} parceiro />;
       case "cadastro-dados": return <CadastroDadosView onGo={goTo} />;
+      case "cadastro-parceiro": return <CadastroDadosView key="parceiro" onGo={goTo} parceiro />;
       case "cadastro-telefone": return <CadastroTelefoneView onGo={goTo} />;
       case "cadastro-endereco":
         return voltarDoEndereco ? (

@@ -498,7 +498,7 @@ export default function LoginView({
               textDecoration: "underline",
             }}
             onClick={() =>
-              onGo("cadastro-dados")
+              onGo(parceiro ? "cadastro-parceiro" : "cadastro-dados")
             }
           >
             {parceiro ? "Cadastre seu restaurante ou seja entregador" : "Cadastre-se"}

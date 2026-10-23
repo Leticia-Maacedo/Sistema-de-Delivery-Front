@@ -21,7 +21,7 @@ export const PAPEIS = {
     titulo: "",
     inicio: "login",
     menu: [],
-    telas: ["login", "login-parceiro", "cadastro-dados", "cadastro-telefone"],
+    telas: ["login", "login-parceiro", "cadastro-dados", "cadastro-parceiro", "cadastro-telefone"],
   },
   cliente: {
     titulo: "CLIENTE",
