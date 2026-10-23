@@ -213,6 +213,9 @@ export default function EntregasView({ titulo }) {
               <div style={{ ...texto, fontSize: 12, color: "var(--muted)", marginTop: 8 }}>
                 {detalhe.tipo_entrega === "retirada" ? "Retirada no balcão" : "Entrega no endereço do cliente"} · {fmt(detalhe.valor_total)} · pagamento {detalhe.pagamento_status || "pendente"}
               </div>
+              {detalhe.endereco_entrega && (
+                <div style={{ ...texto, fontSize: 13, color: "#fff", marginTop: 6 }}>Entregar em: {detalhe.endereco_entrega}</div>
+              )}
 
               <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 14 }}>
                 {detalhe.itens.map((item) => (

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { ArrowLeft, Trash2, Plus, Minus, ShoppingCart, ShoppingBag, Bike, Store } from "lucide-react";
+import { ArrowLeft, Trash2, Plus, Minus, ShoppingCart, ShoppingBag, Bike, Store, MapPin } from "lucide-react";
 import EmptyState from "../../components/EmptyState";
 import { cesta } from "../../api/client";
+import { listarEnderecosDoCliente } from "./EnderecosView";
 
 const fmt = (n) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
 
@@ -21,14 +22,24 @@ const TIPOS_ENTREGA = [
  * Subtotal, taxa e total vêm do GET /cesta/resumo, recalculado sempre
  * que a sacola ou o tipo de entrega mudam. `pode_fechar`/`motivo` dizem
  * se dá pra seguir (sem endereço, fora do raio, item indisponível...).
+ *
+ * Na entrega, o cliente vê para qual endereço vai o pedido e pode trocar
+ * por outro dos seus endereços ou cadastrar um novo (`localId`).
  */
 export default function CestaView({
   sacola, carregando, erro, tipoEntrega, onTipoEntregaChange,
   onAumentar, onDiminuir, onRemoverItem,
   onBack, onContinuarComprando, onIrParaPagamento,
+  localId, onTrocarEndereco, onNovoEndereco,
 }) {
   const [resumo, setResumo] = useState(null);
   const [carregandoResumo, setCarregandoResumo] = useState(false);
+  const [enderecos, setEnderecos] = useState([]);
+  const [trocando, setTrocando] = useState(false);
+
+  useEffect(() => {
+    listarEnderecosDoCliente().then(setEnderecos).catch(() => setEnderecos([]));
+  }, []);
 
   const itens = sacola?.itens || [];
 
@@ -40,13 +51,13 @@ export default function CestaView({
     let ativo = true;
     setCarregandoResumo(true);
     cesta
-      .resumo(tipoEntrega)
+      .resumo(tipoEntrega, localId)
       .then((r) => ativo && setResumo(r))
       .catch(() => ativo && setResumo(null))
       .finally(() => ativo && setCarregandoResumo(false));
     return () => { ativo = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sacola, tipoEntrega]);
+  }, [sacola, tipoEntrega, localId]);
 
   if (carregando) {
     return <div style={{ fontFamily: "'Exo 2', sans-serif", color: "var(--muted)" }}>Carregando cesta...</div>;
@@ -56,6 +67,8 @@ export default function CestaView({
   const taxaEntrega = Number(resumo?.taxa_entrega ?? 0);
   const total = Number(resumo?.total ?? subtotal);
   const podeFechar = resumo ? resumo.pode_fechar : true;
+  const enderecoEntrega = enderecos.find((e) => e.id === resumo?.local_entrega_id) || null;
+  const texto = { fontFamily: "'Exo 2', sans-serif" };
 
   return (
     <div style={{ maxWidth: 600, margin: "0 auto" }}>
@@ -129,6 +142,53 @@ export default function CestaView({
               );
             })}
           </div>
+
+          {tipoEntrega === "delivery" && (
+            <div className="ef-card" style={{ padding: 16, marginTop: 14 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                <MapPin size={18} color="var(--accent)" style={{ marginTop: 2, flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ ...texto, fontSize: 11, color: "var(--muted)", letterSpacing: 1 }}>ENTREGAR EM</div>
+                  {enderecoEntrega ? (
+                    <div style={{ ...texto, fontSize: 13, color: "#fff", marginTop: 4 }}>
+                      <b>{enderecoEntrega.tipo}</b> · {enderecoEntrega.endereco}
+                    </div>
+                  ) : (
+                    <div style={{ ...texto, fontSize: 13, color: "#E6534C", marginTop: 4 }}>Nenhum endereço cadastrado.</div>
+                  )}
+                </div>
+                {enderecos.length > 1 && (
+                  <button className="ef-btn-outline" style={{ padding: "6px 12px", fontSize: 11 }} onClick={() => setTrocando((t) => !t)}>
+                    {trocando ? "FECHAR" : "TROCAR"}
+                  </button>
+                )}
+              </div>
+              {trocando && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 12 }}>
+                  {enderecos.map((e) => (
+                    <button
+                      key={e.id}
+                      onClick={() => { onTrocarEndereco(e.id); setTrocando(false); }}
+                      aria-pressed={e.id === enderecoEntrega?.id}
+                      style={{
+                        ...texto, textAlign: "left", fontSize: 12, padding: "9px 12px", borderRadius: 8, cursor: "pointer",
+                        border: `1px solid ${e.id === enderecoEntrega?.id ? "var(--accent)" : "var(--border)"}`,
+                        background: e.id === enderecoEntrega?.id ? "var(--hover)" : "transparent", color: "#d8d8d8",
+                      }}
+                    >
+                      <b style={{ color: "#fff" }}>{e.tipo}</b> · {e.endereco}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <button
+                onClick={onNovoEndereco}
+                style={{ ...texto, background: "none", border: "none", color: "var(--accent)", fontSize: 12, cursor: "pointer", padding: 0, marginTop: 10, display: "flex", alignItems: "center", gap: 6 }}
+              >
+                <Plus size={13} /> Cadastrar outro endereço
+              </button>
+            </div>
+          )}
 
           <div className="ef-card" style={{ padding: 18, marginTop: 14, display: "flex", flexDirection: "column", gap: 10, opacity: carregandoResumo ? 0.6 : 1 }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "'Exo 2', sans-serif", fontSize: 13, color: "#d8d8d8" }}>

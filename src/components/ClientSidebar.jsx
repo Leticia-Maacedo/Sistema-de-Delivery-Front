@@ -1,6 +1,6 @@
 import React from "react";
 import { Truck, LogOut } from "lucide-react";
-import { PAPEIS, LINK_PORTAL_PARCEIRO } from "../data/navigation";
+import { PAPEIS } from "../data/navigation";
 import { exibicaoUsuario } from "../data/usuarioExibicao";
 import BotaoNotificacoes from "./BotaoNotificacoes";
 
@@ -35,10 +35,6 @@ export default function ClientSidebar({ view, onGo, usuario, papel, onSair }) {
       </div>
 
       <NavSection label={regras.titulo} items={regras.menu} view={view} onGo={onGo} />
-
-      {!logado && (
-        <NavSection label="PARCEIRO" items={[LINK_PORTAL_PARCEIRO]} view={view} onGo={onGo} />
-      )}
 
       {logado && (
         <div style={{ marginTop: "auto" }}>

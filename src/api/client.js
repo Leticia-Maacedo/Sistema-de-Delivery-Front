@@ -190,10 +190,10 @@ export async function solicitarCodigoCadastroTelefone({ nome, telefone, senha, t
 }
 
 /** POST /auth/telefone/cadastro/confirmar -> TokenResponse (já salva a sessão) */
-export async function confirmarCadastroTelefone({ telefone, codigo, nome, senha, tipo = "cliente" }) {
+export async function confirmarCadastroTelefone({ telefone, codigo, nome, senha, email, tipo = "cliente" }) {
   const data = await apiFetch("/auth/telefone/cadastro/confirmar", {
     method: "POST",
-    body: JSON.stringify({ telefone: normalizarTelefone(telefone), codigo, nome, senha, tipo }),
+    body: JSON.stringify({ telefone: normalizarTelefone(telefone), codigo, nome, senha, email: email || null, tipo }),
   });
   return guardarSessao(data);
 }
@@ -228,6 +228,14 @@ export async function atualizarUsuario(id, dados) {
   return apiFetch(`/usuarios/${id}`, { method: "PUT", body: JSON.stringify(dados) });
 }
 
+/** PUT /usuarios/{id}/senha — confere a senha atual antes de trocar. */
+export async function alterarSenha(id, senhaAtual, senhaNova) {
+  return apiFetch(`/usuarios/${id}/senha`, {
+    method: "PUT",
+    body: JSON.stringify({ senha_atual: senhaAtual || null, senha_nova: senhaNova }),
+  });
+}
+
 export async function removerUsuario(id) {
   return apiFetch(`/usuarios/${id}`, { method: "DELETE" });
 }
@@ -238,6 +246,7 @@ export const usuarios = {
   listar: listarUsuarios,
   obter: obterUsuario,
   atualizar: atualizarUsuario,
+  alterarSenha,
   remover: removerUsuario,
 };
 
@@ -290,8 +299,9 @@ export const cesta = {
     apiFetch(`/cesta/itens/${produtoId}`, { method: "PUT", body: JSON.stringify({ quantidade }) }),
   /** DELETE /cesta/itens/{produto_id} */
   removerItem: (produtoId) => apiFetch(`/cesta/itens/${produtoId}`, { method: "DELETE" }),
-  /** GET /cesta/resumo — subtotal, taxa pela distância e total (retirada = sem taxa) */
-  resumo: (tipoEntrega = "delivery") => apiFetch(`/cesta/resumo?tipo_entrega=${tipoEntrega}`),
+  /** GET /cesta/resumo — subtotal, taxa pela distância até o endereço escolhido e total (retirada = sem taxa) */
+  resumo: (tipoEntrega = "delivery", localId = null) =>
+    apiFetch(`/cesta/resumo?tipo_entrega=${tipoEntrega}${localId ? `&local_id=${localId}` : ""}`),
 };
 
 /* ------------------------------------------------------------------ */

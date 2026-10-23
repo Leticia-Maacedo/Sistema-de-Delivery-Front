@@ -82,6 +82,9 @@ export default function AcompanharPedidoView({ pedidoId, onBack }) {
             {retirada ? <Store size={14} /> : <Bike size={14} />}
             {pedido.restaurante_nome || `Restaurante #${pedido.restaurante_id}`} · {retirada ? "Retirada no balcão" : "Entrega"}
           </div>
+          {!retirada && pedido.endereco_entrega && (
+            <div style={{ ...texto, fontSize: 12, color: "#d8d8d8", marginTop: 4 }}>Entregar em: {pedido.endereco_entrega}</div>
+          )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <StatusBadge status={pedido.status_rotulo} />

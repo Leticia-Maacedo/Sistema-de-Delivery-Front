@@ -91,6 +91,7 @@ export default function CadastroTelefoneView({ onGo }) {
     try {
       await confirmarCadastroTelefone({
         nome: cadastro.nome,
+        email: cadastro.email,
         telefone,
         senha: cadastro.senha,
         codigo,
