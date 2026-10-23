@@ -1,9 +1,22 @@
-import React from "react";
-import { CheckCircle2 } from "lucide-react";
+import React, { useState } from "react";
+import { CheckCircle2, FileText } from "lucide-react";
+import { pagamentos, ApiError } from "../../api/client";
 
 const fmt = (n) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
 
 export default function PedidoConfirmadoView({ pedido, onAcompanhar, onVoltarInicio }) {
+  const [erroNota, setErroNota] = useState("");
+  const dinheiro = pedido?.forma_pagamento === "dinheiro";
+
+  const baixarNota = async () => {
+    setErroNota("");
+    try {
+      await pagamentos.baixarNotaFiscal(pedido.id);
+    } catch (e) {
+      setErroNota(e instanceof ApiError ? e.message : "Não foi possível baixar a nota fiscal.");
+    }
+  };
+
   return (
     <div style={{ maxWidth: 420, margin: "60px auto 0", textAlign: "center" }}>
       <CheckCircle2 size={56} color="var(--accent)" />
@@ -18,7 +31,25 @@ export default function PedidoConfirmadoView({ pedido, onAcompanhar, onVoltarIni
           <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "'Exo 2', sans-serif", fontSize: 13, color: "#d8d8d8", marginTop: 8 }}>
             <span>Total</span><span style={{ fontWeight: 700, color: "#fff" }}>{fmt(pedido.valor_total)}</span>
           </div>
+          {dinheiro && (
+            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 12, color: "var(--muted)", marginTop: 8 }}>
+              Pagamento em dinheiro na entrega. A nota fiscal é emitida quando o pedido for entregue.
+            </div>
+          )}
+          {pedido.cupom_fiscal && (
+            <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "'Exo 2', sans-serif", fontSize: 13, color: "#d8d8d8", marginTop: 8 }}>
+              <span>Nota fiscal</span><span>{pedido.cupom_fiscal}</span>
+            </div>
+          )}
         </div>
+      )}
+      {pedido?.cupom_fiscal && (
+        <button className="ef-btn-outline" style={{ marginTop: 14, width: "100%", justifyContent: "center" }} onClick={baixarNota}>
+          <FileText size={14} /> BAIXAR NOTA FISCAL (PDF)
+        </button>
+      )}
+      {erroNota && (
+        <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 12, color: "#E6534C", marginTop: 8 }}>{erroNota}</div>
       )}
       <p style={{ fontFamily: "'Exo 2', sans-serif", color: "var(--muted)", fontSize: 13, marginTop: 16 }}>
         {pedido?.tipo_entrega === "retirada"

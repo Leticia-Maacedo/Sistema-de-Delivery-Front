@@ -21,6 +21,7 @@ import CestaView from "./views/cliente/CestaView";
 import TipoPagamentoView from "./views/cliente/TipoPagamentoView";
 import FormularioCartaoView from "./views/cliente/FormularioCartaoView";
 import PedidoConfirmadoView from "./views/cliente/PedidoConfirmadoView";
+import PagamentoPixView from "./views/cliente/PagamentoPixView";
 import PagamentoView from "./views/cliente/PagamentoView";
 import HistoricoView from "./views/cliente/HistoricoView";
 import AcompanharPedidoView from "./views/cliente/AcompanharPedidoView";
@@ -311,9 +312,14 @@ export default function App() {
             resumo={resumoCesta}
             tipoEntrega={tipoEntrega}
             onBack={() => setView("cesta")}
-            onPedidoPronto={(pedido) => {
+            onPedidoPronto={(pedido, metodo) => {
               setPedidoAtual(pedido);
-              setView("pedido-cartao");
+              if (metodo === "dinheiro") {
+                setSacola(null);
+                setView("pedido-confirmado");
+              } else {
+                setView(metodo === "pix" ? "pedido-pix" : "pedido-cartao");
+              }
             }}
           />
         );
@@ -322,7 +328,20 @@ export default function App() {
           <FormularioCartaoView
             pedido={pedidoAtual}
             onBack={() => setView("pedido-tipo-pagamento")}
-            onPagamentoConfirmado={() => {
+            onPagamentoConfirmado={(pagamento) => {
+              setPedidoAtual((atual) => ({ ...atual, cupom_fiscal: pagamento?.nota_fiscal ?? null }));
+              setSacola(null);
+              setView("pedido-confirmado");
+            }}
+          />
+        );
+      case "pedido-pix":
+        return (
+          <PagamentoPixView
+            pedido={pedidoAtual}
+            onBack={() => setView("pedido-tipo-pagamento")}
+            onPagamentoConfirmado={(pagamento) => {
+              setPedidoAtual((atual) => ({ ...atual, cupom_fiscal: pagamento?.nota_fiscal ?? null }));
               setSacola(null);
               setView("pedido-confirmado");
             }}

@@ -39,7 +39,7 @@ export const PAPEIS = {
     ],
     telas: [
       ...TELAS_LOJA, "cadastro-endereco", "cesta", "pedido-tipo-pagamento", "pedido-cartao",
-      "pedido-confirmado", "acompanhar-pedido", "historico", "pagamento",
+      "pedido-pix", "pedido-confirmado", "acompanhar-pedido", "historico", "pagamento",
     ],
   },
   restaurante: {

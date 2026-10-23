@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { ArrowLeft, CheckCircle2, Circle, KeyRound, RefreshCw, Bike, Store, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Circle, KeyRound, RefreshCw, Bike, Store, XCircle, FileText } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge";
 import GoogleMapa from "../../components/GoogleMapa";
-import { pedidos, ApiError } from "../../api/client";
+import { pedidos, pagamentos, ApiError } from "../../api/client";
 
 const fmt = (n) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
 const hora = (iso) =>
@@ -178,6 +178,15 @@ export default function AcompanharPedidoView({ pedidoId, onBack }) {
         </div>
         {pedido.pagamento_status && (
           <div style={{ ...texto, fontSize: 11, color: "var(--muted)" }}>Pagamento: {pedido.pagamento_status}</div>
+        )}
+        {pedido.nota_fiscal && (
+          <button
+            className="ef-btn-outline"
+            style={{ marginTop: 6, justifyContent: "center" }}
+            onClick={() => pagamentos.baixarNotaFiscal(pedido.id).catch((e) => setErro(e.message))}
+          >
+            <FileText size={14} /> BAIXAR NOTA FISCAL ({pedido.nota_fiscal})
+          </button>
         )}
       </div>
     </div>

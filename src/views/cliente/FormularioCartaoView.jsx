@@ -8,6 +8,16 @@ const fmt = (n) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
 const formatarNumeroCartao = (v) =>
   v.replace(/\D/g, "").slice(0, 16).replace(/(\d{4})(?=\d)/g, "$1 ");
 
+const formatarCpf = (v) =>
+  v
+    .replace(/\D/g, "")
+    .slice(0, 11)
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+
+const formatarCep = (v) => v.replace(/\D/g, "").slice(0, 8).replace(/(\d{5})(\d)/, "$1-$2");
+
 const formatarValidade = (v) => {
   const digits = v.replace(/\D/g, "").slice(0, 4);
   return digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
@@ -16,16 +26,20 @@ const formatarValidade = (v) => {
 /**
  * Formulário de pagamento com cartão.
  *
- * O número, nome, validade e CVV são só pra UX parecer real — o
- * pagamento_controller.py real NÃO recebe nada disso, só o pedido_id
- * (o processamento é 100% simulado em app/core/pagamento_cartao.py).
- * Por isso a validação aqui é só de formato, não é enviada à API.
+ * POST /pagamentos/cartao: o back repassa o cartão ao Asaas (sandbox) e
+ * não grava nada dele. O Asaas também exige CPF, CEP, número do endereço
+ * e telefone do titular. Cartão recusado volta com status "recusado" e o
+ * motivo em `mensagem`; o cliente pode corrigir e tentar de novo.
  */
 export default function FormularioCartaoView({ pedido, onBack, onPagamentoConfirmado }) {
   const [numero, setNumero] = useState("");
   const [nome, setNome] = useState("");
   const [validade, setValidade] = useState("");
   const [cvv, setCvv] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [cep, setCep] = useState("");
+  const [numeroEndereco, setNumeroEndereco] = useState("");
+  const [telefone, setTelefone] = useState("");
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
 
@@ -36,6 +50,10 @@ export default function FormularioCartaoView({ pedido, onBack, onPagamentoConfir
     if (nome.trim().length < 3) return "Informe o nome como está no cartão.";
     if (!/^\d{2}\/\d{2}$/.test(validade)) return "Validade inválida (use MM/AA).";
     if (!/^\d{3,4}$/.test(cvv)) return "CVV inválido.";
+    if (cpf.replace(/\D/g, "").length !== 11) return "CPF inválido.";
+    if (cep.replace(/\D/g, "").length !== 8) return "CEP inválido.";
+    if (!numeroEndereco.trim()) return "Informe o número do endereço.";
+    if (telefone.replace(/\D/g, "").length < 10) return "Telefone inválido.";
     return "";
   };
 
@@ -53,9 +71,18 @@ export default function FormularioCartaoView({ pedido, onBack, onPagamentoConfir
     setErro("");
     setEnviando(true);
     try {
-      const pagamento = await pagamentos.pagarComCartao(pedido.id);
+      const [mes, ano] = validade.split("/");
+      const pagamento = await pagamentos.pagarComCartao(
+        pedido.id,
+        { titular: nome.trim(), numero: numero.replace(/\s/g, ""), mes_validade: mes, ano_validade: `20${ano}`, cvv },
+        { cpf, cep, numero_endereco: numeroEndereco.trim(), telefone: telefone.replace(/\D/g, "") }
+      );
       if (pagamento.status === "recusado") {
-        setErro("Pagamento recusado. Verifique os dados e tente novamente.");
+        setErro(`Pagamento recusado: ${pagamento.mensagem || "verifique os dados e tente novamente."}`);
+        return;
+      }
+      if (pagamento.status !== "aprovado") {
+        setErro("Pagamento em análise. Acompanhe o status no pedido.");
         return;
       }
       onPagamentoConfirmado(pagamento);
@@ -96,6 +123,17 @@ export default function FormularioCartaoView({ pedido, onBack, onPagamentoConfir
             onChange={(e) => setCvv(e.target.value.replace(/\D/g, "").slice(0, 4))}
           />
         </div>
+        <Field label="CPF DO TITULAR" placeholder="000.000.000-00" value={cpf} onChange={(e) => setCpf(formatarCpf(e.target.value))} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="CEP" placeholder="00000-000" value={cep} onChange={(e) => setCep(formatarCep(e.target.value))} />
+          <Field label="NÚMERO" placeholder="123" value={numeroEndereco} onChange={(e) => setNumeroEndereco(e.target.value.slice(0, 10))} />
+        </div>
+        <Field
+          label="TELEFONE"
+          placeholder="(11) 99999-9999"
+          value={telefone}
+          onChange={(e) => setTelefone(e.target.value.replace(/[^\d()\s-]/g, "").slice(0, 16))}
+        />
 
         {erro && <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 12, color: "#E6534C" }}>{erro}</span>}
 
@@ -103,7 +141,7 @@ export default function FormularioCartaoView({ pedido, onBack, onPagamentoConfir
           {enviando ? "PROCESSANDO..." : `PAGAR ${fmt(total)}`}
         </button>
         <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 10, color: "var(--muted)", textAlign: "center" }}>
-          Ambiente de demonstração — o pagamento é simulado pelo back, nenhum dado do cartão é enviado.
+          Ambiente de teste (Asaas sandbox) — nenhuma cobrança real é feita e o cartão não fica salvo.
         </span>
       </div>
     </div>

@@ -4,12 +4,11 @@ import { pedidos, pagamentos, ApiError } from "../../api/client";
 
 const fmt = (n) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
 
-// PIX e Dinheiro aparecem na UI mas ficam desabilitados: o back hoje só
-// aceita "cartao" (EscolhaPagamentoIn é Literal["cartao"]).
+// Mesmos valores do back (MetodoPagamento = "cartao" | "pix" | "dinheiro").
 const METODOS = [
-  { valor: "cartao", label: "Cartão de Crédito/Débito", Icon: CreditCard, disponivel: true },
-  { valor: "pix", label: "PIX", Icon: Wallet, disponivel: false },
-  { valor: "dinheiro", label: "Dinheiro na entrega", Icon: Banknote, disponivel: false },
+  { valor: "cartao", label: "Cartão de Crédito", Icon: CreditCard, disponivel: true },
+  { valor: "pix", label: "PIX", Icon: Wallet, disponivel: true },
+  { valor: "dinheiro", label: "Dinheiro na entrega", Icon: Banknote, disponivel: true },
 ];
 
 /**
@@ -19,7 +18,8 @@ const METODOS = [
  * 1. Cria o pedido — POST /pedidos com o tipo de entrega escolhido na
  *    cesta. O back recalcula restaurante, taxa e total a partir da cesta.
  * 2. Confirma o método — PUT /pagamentos/pedidos/{id}/metodo.
- * 3. Segue pro formulário do cartão, que processa o pagamento de verdade.
+ * 3. Cartão: formulário do cartão. PIX: tela do QR Code. Dinheiro: o
+ *    pedido já vai para o restaurante e é pago na entrega.
  */
 export default function TipoPagamentoView({ sacola, resumo, tipoEntrega, onBack, onPedidoPronto }) {
   const [metodo, setMetodo] = useState("cartao");
@@ -34,10 +34,10 @@ export default function TipoPagamentoView({ sacola, resumo, tipoEntrega, onBack,
     try {
       const pedido = await pedidos.criar({
         tipo_entrega: tipoEntrega,
-        forma_pagamento: "cartao",
+        forma_pagamento: metodo,
       });
-      await pagamentos.escolherTipo(pedido.id, "cartao");
-      onPedidoPronto(pedido);
+      await pagamentos.escolherTipo(pedido.id, metodo);
+      onPedidoPronto({ ...pedido, forma_pagamento: metodo }, metodo);
     } catch (e) {
       setErro(e instanceof ApiError ? e.message : "Não foi possível criar o pedido. Tente novamente.");
     } finally {
@@ -88,7 +88,7 @@ export default function TipoPagamentoView({ sacola, resumo, tipoEntrega, onBack,
       )}
 
       <button className="ef-btn-solid" style={{ marginTop: 18 }} onClick={continuar} disabled={enviando}>
-        {enviando ? "CRIANDO PEDIDO..." : "CONTINUAR PARA PAGAMENTO"}
+        {enviando ? "CRIANDO PEDIDO..." : metodo === "dinheiro" ? "CONFIRMAR PEDIDO" : "CONTINUAR PARA PAGAMENTO"}
       </button>
     </div>
   );

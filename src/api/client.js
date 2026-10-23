@@ -437,22 +437,58 @@ export const notificacoes = {
 
 /* ------------------------------------------------------------------ */
 /* Pagamento — rotas REAIS, confirmadas no pagamento_controller.py.     */
-/* Hoje só "cartao" é aceito (EscolhaPagamentoIn é Literal["cartao"]).   */
-/* O cartão em si (número, nome, validade, CVV) NUNCA é enviado — o     */
-/* back só precisa do pedido_id, o pagamento é 100% simulado.           */
+/* Métodos: "cartao", "pix" e "dinheiro" (na entrega). Cartão e PIX vão */
+/* para o Asaas (sandbox); sem a chave no back, o gateway é simulado.   */
+/* O cartão é repassado ao Asaas e o back não grava nada dele.          */
 /* ------------------------------------------------------------------ */
 
 export const pagamentos = {
-  /** PUT /pagamentos/pedidos/{pedido_id}/metodo — hoje só aceita "cartao" */
+  /** PUT /pagamentos/pedidos/{pedido_id}/metodo — "cartao", "pix" ou "dinheiro" */
   escolherTipo: (pedidoId, metodo = "cartao") =>
     apiFetch(`/pagamentos/pedidos/${pedidoId}/metodo`, {
       method: "PUT",
       body: JSON.stringify({ metodo }),
     }),
-  /** POST /pagamentos/cartao — só manda pedido_id, nada de dados do cartão */
-  pagarComCartao: (pedidoId) =>
+  /**
+   * POST /pagamentos/cartao.
+   * `cartao` = { titular, numero, mes_validade, ano_validade, cvv };
+   * `pagador` = { cpf, cep, numero_endereco, telefone } (exigidos pelo Asaas).
+   */
+  pagarComCartao: (pedidoId, cartao, pagador = {}) =>
     apiFetch("/pagamentos/cartao", {
       method: "POST",
-      body: JSON.stringify({ pedido_id: pedidoId, metodo: "cartao" }),
+      body: JSON.stringify({ pedido_id: pedidoId, metodo: "cartao", cartao, ...pagador }),
     }),
+  /** POST /pagamentos/pix — devolve pix_qrcode (imagem data URI) e pix_copia_cola */
+  gerarPix: (pedidoId, cpf) =>
+    apiFetch("/pagamentos/pix", {
+      method: "POST",
+      body: JSON.stringify({ pedido_id: pedidoId, cpf }),
+    }),
+  /** GET /pagamentos/pedidos/{pedido_id} — também atualiza o status do PIX no Asaas */
+  consultar: (pedidoId) => apiFetch(`/pagamentos/pedidos/${pedidoId}`),
+  /** POST /pagamentos/pedidos/{pedido_id}/pix/simular-pagamento — só no sandbox */
+  simularPixPago: (pedidoId) =>
+    apiFetch(`/pagamentos/pedidos/${pedidoId}/pix/simular-pagamento`, { method: "POST" }),
+  /** GET /pagamentos/pedidos/{pedido_id}/nota-fiscal — baixa o PDF da nota */
+  baixarNotaFiscal: async (pedidoId) => {
+    const token = getToken();
+    const res = await fetch(`${API_URL}/pagamentos/pedidos/${pedidoId}/nota-fiscal`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const erro = await res.json().catch(() => ({}));
+      throw new ApiError(erro.detail || `Erro ${res.status} ao baixar a nota fiscal`, res.status, erro.detail);
+    }
+    const disposicao = res.headers.get("Content-Disposition") || "";
+    const nome = /filename="([^"]+)"/.exec(disposicao)?.[1] || `nota-pedido-${pedidoId}.pdf`;
+    const url = URL.createObjectURL(await res.blob());
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = nome;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  },
 };
