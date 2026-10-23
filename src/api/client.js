@@ -439,6 +439,26 @@ export const pedidos = {
 /* Notificações push (/notificacoes) — ver src/api/push.js               */
 /* ------------------------------------------------------------------ */
 
+/* ------------------------------------------------------------------ */
+/* Portal do Parceiro (/parceiro) — o dono gerencia o PRÓPRIO            */
+/* restaurante e o cardápio. Só para login do tipo "restaurante".        */
+/* ------------------------------------------------------------------ */
+
+export const parceiro = {
+  /** GET /parceiro/restaurante — 404 se o dono ainda não cadastrou */
+  restaurante: () => apiFetch("/parceiro/restaurante"),
+  cadastrar: (dados) => apiFetch("/parceiro/restaurante", { method: "POST", body: JSON.stringify(dados) }),
+  alterar: (dados) => apiFetch("/parceiro/restaurante", { method: "PUT", body: JSON.stringify(dados) }),
+  /** GET /parceiro/resumo — números reais do dia */
+  resumo: () => apiFetch("/parceiro/resumo"),
+  produtos: {
+    listar: () => apiFetch("/parceiro/produtos"),
+    criar: (dados) => apiFetch("/parceiro/produtos", { method: "POST", body: JSON.stringify(dados) }),
+    alterar: (id, dados) => apiFetch(`/parceiro/produtos/${id}`, { method: "PUT", body: JSON.stringify(dados) }),
+    remover: (id) => apiFetch(`/parceiro/produtos/${id}`, { method: "DELETE" }),
+  },
+};
+
 export const notificacoes = {
   chavePublica: () => apiFetch("/notificacoes/chave-publica"),
   inscrever: (inscricao) => apiFetch("/notificacoes/inscricao", { method: "POST", body: JSON.stringify(inscricao) }),

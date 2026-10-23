@@ -102,7 +102,8 @@ export default function CadastroTelefoneView({ onGo }) {
         "entregafood_cadastro_telefone"
       );
 
-      onGo("cadastro-endereco");
+      // Cliente cadastra o endereço de entrega; parceiro vai para o Portal.
+      onGo(cadastro.tipo === "restaurante" ? "cadastro-restaurante" : cadastro.tipo === "entregador" ? "painel-entregas" : "cadastro-endereco");
     } catch (e) {
       setErro(
         e instanceof ApiError

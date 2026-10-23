@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Store, MapPin, ChevronRight } from "lucide-react";
+import SeloFuncionamento from "../../components/SeloFuncionamento";
 import EmptyState from "../../components/EmptyState";
 import PageHeader from "../../components/PageHeader";
 import ClientTopBar from "../../components/ClientTopBar";
@@ -74,6 +75,7 @@ export default function RestaurantesListaView({ onSelect }) {
                 <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 12, color: "#d8d8d8", marginTop: 8 }}>
                   Taxa de entrega: <span style={{ color: "var(--accent)" }}>{fmt(r.taxa_entrega_km)}/km</span>
                 </div>
+                <div style={{ marginTop: 8 }}><SeloFuncionamento restaurante={r} compacto /></div>
               </div>
             </div>
           ))}
