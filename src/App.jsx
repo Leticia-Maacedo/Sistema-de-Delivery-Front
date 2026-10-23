@@ -22,7 +22,8 @@ import TipoPagamentoView from "./views/cliente/TipoPagamentoView";
 import FormularioCartaoView from "./views/cliente/FormularioCartaoView";
 import PedidoConfirmadoView from "./views/cliente/PedidoConfirmadoView";
 import PagamentoPixView from "./views/cliente/PagamentoPixView";
-import PagamentoView from "./views/cliente/PagamentoView";
+import EnderecosView from "./views/cliente/EnderecosView";
+import MinhaContaView from "./views/cliente/MinhaContaView";
 import HistoricoView from "./views/cliente/HistoricoView";
 import AcompanharPedidoView from "./views/cliente/AcompanharPedidoView";
 
@@ -39,8 +40,11 @@ import EntregasView from "./views/admin/EntregasView";
 import FuncionalidadesView from "./views/admin/FuncionalidadesView";
 import EmptyState from "./components/EmptyState";
 
+const CHAVE_ENDERECO = "entregafood_endereco_entrega";
+
 export default function App() {
-  const [view, setView] = useState("inicio-categorias");
+  // O site abre no login: sem conta, nenhuma outra tela é liberada.
+  const [view, setView] = useState("login");
   const [orderId, setOrderId] = useState(null);
   const [restauranteId, setRestauranteId] = useState(null);
   const [editRestauranteId, setEditRestauranteId] = useState(null);
@@ -81,6 +85,21 @@ export default function App() {
   const [resumoCesta, setResumoCesta] = useState(null);
   // Acompanhar Entrega (Sprint 3): pedido aberto na tela de acompanhamento.
   const [pedidoAcompanhadoId, setPedidoAcompanhadoId] = useState(null);
+  // Endereço escolhido para a entrega (Endereços / cesta). null = o último cadastrado.
+  const [enderecoEntregaId, setEnderecoEntregaIdState] = useState(() => {
+    try { return Number(localStorage.getItem(CHAVE_ENDERECO)) || null; } catch { return null; }
+  });
+  const setEnderecoEntregaId = (id) => {
+    setEnderecoEntregaIdState(id);
+    try {
+      if (id) localStorage.setItem(CHAVE_ENDERECO, String(id));
+      else localStorage.removeItem(CHAVE_ENDERECO);
+    } catch { /* navegador sem localStorage: a escolha vale só nesta aba */ }
+  };
+  // Formulário de endereço aberto por "Endereços" ou pela cesta: qual
+  // endereço alterar (null = novo) e para qual tela voltar depois.
+  const [enderecoEditando, setEnderecoEditando] = useState(null);
+  const [voltarDoEndereco, setVoltarDoEndereco] = useState(null);
   const [carregandoCesta, setCarregandoCesta] = useState(false);
   const [erroCesta, setErroCesta] = useState("");
 
@@ -220,7 +239,18 @@ export default function App() {
     setView("cadastro-restaurante");
   };
 
+  const abrirFormularioEndereco = (local, voltarPara) => {
+    setEnderecoEditando(local);
+    setVoltarDoEndereco(voltarPara);
+    setView("cadastro-endereco");
+  };
+
   const goTo = (key) => {
+    // "cadastro-endereco" pelo fluxo de cadastro da conta: endereço novo, depois o início.
+    if (key === "cadastro-endereco") {
+      setEnderecoEditando(null);
+      setVoltarDoEndereco(null);
+    }
     // Zera o id de edição sempre que se navega por aqui — evita que um
     // "cadastro-restaurante" acessado direto do menu abra em modo edição
     // por acidente, com o id de uma navegação anterior.
@@ -250,7 +280,8 @@ export default function App() {
     setSacola(null);
     setPedidoAtual(null);
     setResumoCesta(null);
-    setView("inicio-categorias");
+    setEnderecoEntregaId(null);
+    setView("login");
   };
 
   const renderView = () => {
@@ -260,7 +291,32 @@ export default function App() {
       case "login-parceiro": return <LoginView onGo={goTo} parceiro />;
       case "cadastro-dados": return <CadastroDadosView onGo={goTo} />;
       case "cadastro-telefone": return <CadastroTelefoneView onGo={goTo} />;
-      case "cadastro-endereco": return <CadastroEnderecoView onGo={goTo} />;
+      case "cadastro-endereco":
+        return voltarDoEndereco ? (
+          <CadastroEnderecoView
+            key={enderecoEditando?.id ?? "novo"}
+            onGo={goTo}
+            local={enderecoEditando}
+            onCancelar={() => setView(voltarDoEndereco)}
+            onConcluir={(local) => {
+              // Endereço novo cadastrado pela cesta já vira o da entrega.
+              if (!enderecoEditando && voltarDoEndereco === "cesta") setEnderecoEntregaId(local.id);
+              setView(voltarDoEndereco);
+            }}
+          />
+        ) : (
+          <CadastroEnderecoView onGo={goTo} />
+        );
+      case "enderecos":
+        return (
+          <EnderecosView
+            selecionadoId={enderecoEntregaId}
+            onSelecionar={setEnderecoEntregaId}
+            onNovo={() => abrirFormularioEndereco(null, "enderecos")}
+            onAlterar={(local) => abrirFormularioEndereco(local, "enderecos")}
+          />
+        );
+      case "minha-conta": return <MinhaContaView onUsuarioAtualizado={setUsuario} />;
       case "pagina-principal": return <PaginaPrincipalView usuario={usuario} onGo={goTo} onSelectRestaurante={openRestaurante} />;
       case "restaurantes-cliente": return <RestaurantesListaView onSelect={openRestaurante} />;
       case "cardapio-restaurante":
@@ -299,6 +355,9 @@ export default function App() {
             onRemoverItem={removerItemCesta}
             onBack={() => setView("restaurantes-cliente")}
             onContinuarComprando={() => setView(restauranteId ? "cardapio-restaurante" : "restaurantes-cliente")}
+            localId={enderecoEntregaId}
+            onTrocarEndereco={setEnderecoEntregaId}
+            onNovoEndereco={() => abrirFormularioEndereco(null, "cesta")}
             onIrParaPagamento={(resumo) => {
               setResumoCesta(resumo);
               goTo("pedido-tipo-pagamento");
@@ -357,7 +416,6 @@ export default function App() {
         );
       case "acompanhar-pedido":
         return <AcompanharPedidoView pedidoId={pedidoAcompanhadoId} onBack={() => goTo("historico")} />;
-      case "pagamento": return <PagamentoView />;
       case "historico": return <HistoricoView onAcompanhar={acompanharPedido} onGo={goTo} />;
       case "area-parceiro": return <AreaParceiroView onGo={goTo} onEditRestaurante={editarRestaurante} />;
       case "cadastro-restaurante": return <CadastroRestauranteView restauranteId={editRestauranteId} onGo={goTo} />;
@@ -437,6 +495,12 @@ export default function App() {
             <div style={{ padding: "24px 28px" }}>{renderView()}</div>
           </main>
         </>
+      ) : papel === "visitante" ? (
+        // Sem login: só a entrada (login, cadastro e Portal do Parceiro), sem menu.
+        <main style={{ flex: 1, position: "relative", padding: "28px 20px" }}>
+          {renderView()}
+          <SystemStatus />
+        </main>
       ) : (
         <>
           <ClientSidebar view={view} onGo={goTo} usuario={usuario} papel={papel || "visitante"} onSair={sair} />

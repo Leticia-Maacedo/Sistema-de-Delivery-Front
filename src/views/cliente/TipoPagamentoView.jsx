@@ -35,6 +35,8 @@ export default function TipoPagamentoView({ sacola, resumo, tipoEntrega, onBack,
       const pedido = await pedidos.criar({
         tipo_entrega: tipoEntrega,
         forma_pagamento: metodo,
+        // Mesmo endereço mostrado na cesta (o pedido grava uma cópia dele).
+        local_id: tipoEntrega === "delivery" ? resumo?.local_entrega_id ?? null : null,
       });
       await pagamentos.escolherTipo(pedido.id, metodo);
       onPedidoPronto({ ...pedido, forma_pagamento: metodo }, metodo);

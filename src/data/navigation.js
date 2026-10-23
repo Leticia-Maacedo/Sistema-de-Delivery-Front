@@ -1,11 +1,12 @@
 import {
   Home, Users, Store, Package, ClipboardList, Truck, CreditCard, BarChart3,
-  Settings, Plug, HelpCircle, ListChecks, Search, LogIn, Star, Briefcase,
+  Settings, Plug, HelpCircle, ListChecks, Search, Star, MapPin, UserCircle,
 } from "lucide-react";
 
 /*
  * Cada tipo de usuário tem a sua própria experiência, como no iFood:
- * - visitante e cliente: o app/site de pedidos;
+ * - visitante: só a entrada (login e cadastro) — nada abre sem conta;
+ * - cliente: o app/site de pedidos;
  * - restaurante: o Portal do Parceiro;
  * - entregador: o app do entregador;
  * - admin: o painel administrativo (layout próprio, NAV_ADMIN_SIDEBAR).
@@ -17,15 +18,10 @@ const TELAS_LOJA = ["inicio-categorias", "pagina-principal", "restaurantes-clien
 
 export const PAPEIS = {
   visitante: {
-    titulo: "CLIENTE",
-    inicio: "inicio-categorias",
-    menu: [
-      { key: "inicio-categorias", label: "Início", Icon: Home },
-      { key: "pagina-principal", label: "Explorar", Icon: Search },
-      { key: "restaurantes-cliente", label: "Restaurantes", Icon: Store },
-      { key: "login", label: "Entrar", Icon: LogIn },
-    ],
-    telas: [...TELAS_LOJA, "login", "login-parceiro", "cadastro-dados", "cadastro-telefone"],
+    titulo: "",
+    inicio: "login",
+    menu: [],
+    telas: ["login", "login-parceiro", "cadastro-dados", "cadastro-telefone"],
   },
   cliente: {
     titulo: "CLIENTE",
@@ -35,11 +31,12 @@ export const PAPEIS = {
       { key: "pagina-principal", label: "Explorar", Icon: Search },
       { key: "restaurantes-cliente", label: "Restaurantes", Icon: Store },
       { key: "historico", label: "Pedidos", Icon: ClipboardList },
-      { key: "pagamento", label: "Pagamento", Icon: CreditCard },
+      { key: "enderecos", label: "Endereços", Icon: MapPin },
+      { key: "minha-conta", label: "Minha conta", Icon: UserCircle },
     ],
     telas: [
       ...TELAS_LOJA, "cadastro-endereco", "cesta", "pedido-tipo-pagamento", "pedido-cartao",
-      "pedido-pix", "pedido-confirmado", "acompanhar-pedido", "historico", "pagamento",
+      "pedido-pix", "pedido-confirmado", "acompanhar-pedido", "historico", "enderecos", "minha-conta",
     ],
   },
   restaurante: {
@@ -50,19 +47,21 @@ export const PAPEIS = {
       { key: "area-parceiro", label: "Meu restaurante", Icon: Store },
       { key: "cardapios", label: "Cardápio", Icon: Package },
       { key: "avaliacoes", label: "Avaliações", Icon: Star },
+      { key: "minha-conta", label: "Minha conta", Icon: UserCircle },
     ],
-    telas: ["painel-entregas", "area-parceiro", "cadastro-restaurante", "cardapios", "avaliacoes"],
+    telas: ["painel-entregas", "area-parceiro", "cadastro-restaurante", "cardapios", "avaliacoes", "minha-conta"],
   },
   entregador: {
     titulo: "ENTREGADOR",
     inicio: "painel-entregas",
-    menu: [{ key: "painel-entregas", label: "Entregas", Icon: Truck }],
-    telas: ["painel-entregas"],
+    menu: [
+      { key: "painel-entregas", label: "Entregas", Icon: Truck },
+      { key: "minha-conta", label: "Minha conta", Icon: UserCircle },
+    ],
+    telas: ["painel-entregas", "minha-conta"],
   },
 };
 
-/** Link do visitante para a entrada de restaurantes e entregadores. */
-export const LINK_PORTAL_PARCEIRO = { key: "login-parceiro", label: "Portal do Parceiro", Icon: Briefcase };
 
 export const NAV_ADMIN_SIDEBAR = [
   { key: "dashboard", label: "Dashboard", Icon: Home },
@@ -88,8 +87,7 @@ PAPEIS.admin = {
 export function telaPermitida(papel, view) {
   const regras = PAPEIS[papel] || PAPEIS.visitante;
   if (regras.telas.includes(view)) return view;
-  // Visitante tentando algo de cliente (cesta, pedidos...): pede login.
-  if (papel === "visitante" && PAPEIS.cliente.telas.includes(view)) return "login";
+  // Visitante só vê login e cadastro: qualquer outra tela pede login.
   return regras.inicio;
 }
 
