@@ -42,6 +42,9 @@ export default function CadastroRestauranteView({ restauranteId, onGo }) {
   const [bairro, setBairro] = useState("");
   const [cidadeUf, setCidadeUf] = useState("");
   const [enderecoOriginal, setEnderecoOriginal] = useState("");
+  // Na edição, o endereço só é validado e geocodificado de novo se o dono mexer nele.
+  const [mexeuNoEndereco, setMexeuNoEndereco] = useState(!editando);
+  const endereco_ = (setter) => (e) => { setMexeuNoEndereco(true); setter(e.target.value); };
 
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [carregando, setCarregando] = useState(editando);
@@ -60,8 +63,10 @@ export default function CadastroRestauranteView({ restauranteId, onGo }) {
         setAbertura(r.horario_abertura ? r.horario_abertura.slice(0, 5) : "");
         setFechamento(r.horario_fechamento ? r.horario_fechamento.slice(0, 5) : "");
         const partes = separarEndereco(r.endereco);
-        setRua(partes.rua); setNumero(partes.numero); setComplemento(partes.complemento);
-        setBairro(partes.bairro); setCidadeUf(partes.cidadeUf);
+        if (partes.numero) {
+          setRua(partes.rua); setNumero(partes.numero); setComplemento(partes.complemento);
+          setBairro(partes.bairro); setCidadeUf(partes.cidadeUf);
+        }
         setEnderecoOriginal(r.endereco);
       })
       .catch((e) => setErro(e instanceof ApiError ? e.message : "Não foi possível carregar o restaurante."))
@@ -74,6 +79,7 @@ export default function CadastroRestauranteView({ restauranteId, onGo }) {
     setErro("");
     try {
       const dados = await buscarEnderecoPorCep(cep);
+      setMexeuNoEndereco(true);
       setRua(dados.rua);
       setBairro(dados.bairro);
       setCidadeUf(dados.cidade && dados.uf ? `${dados.cidade} - ${dados.uf}` : "");
@@ -94,7 +100,7 @@ export default function CadastroRestauranteView({ restauranteId, onGo }) {
     if (raioKm !== null && !(raioKm > 0 && raioKm <= 50)) return setErro("O raio de entrega deve ficar entre 0,1 e 50 km.");
     if (Boolean(abertura) !== Boolean(fechamento)) return setErro("Informe o horário de abertura e o de fechamento (ou deixe os dois em branco).");
     if (abertura && abertura === fechamento) return setErro("A abertura e o fechamento não podem ter o mesmo horário.");
-    if (!rua.trim() || !numero.trim() || !bairro.trim() || !cidadeUf.trim()) {
+    if (mexeuNoEndereco && (!rua.trim() || !numero.trim() || !bairro.trim() || !cidadeUf.trim())) {
       return setErro("Preencha o endereço: CEP, número, rua, bairro e cidade.");
     }
 
@@ -112,7 +118,7 @@ export default function CadastroRestauranteView({ restauranteId, onGo }) {
         horario_fechamento: fechamento || null,
       };
       // Coordenadas só quando o endereço é novo ou mudou.
-      if (!editando || endereco !== enderecoOriginal) {
+      if (mexeuNoEndereco && endereco !== enderecoOriginal) {
         const { latitude, longitude } = await geocodificarEndereco(endereco, cep);
         Object.assign(dados, { endereco, latitude, longitude });
       }
@@ -160,16 +166,21 @@ export default function CadastroRestauranteView({ restauranteId, onGo }) {
         </div>
 
         <span style={{ ...titulo, marginTop: 6 }}>ENDEREÇO</span>
+        {editando && enderecoOriginal && (
+          <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 12, color: "#d8d8d8", marginTop: -6 }}>
+            Atual: {enderecoOriginal}. Preencha o CEP só se quiser trocar o endereço.
+          </span>
+        )}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Field label="CEP" placeholder="05435-000" value={cep} onChange={(e) => setCep(e.target.value)} onBlur={handleCepBlur} />
-          <Field label="NÚMERO" placeholder="123" value={numero} onChange={(e) => setNumero(e.target.value)} />
+          <Field label="CEP" placeholder="05435-000" value={cep} onChange={endereco_(setCep)} onBlur={handleCepBlur} />
+          <Field label="NÚMERO" placeholder="123" value={numero} onChange={endereco_(setNumero)} />
         </div>
         {buscandoCep && <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 11, color: "var(--muted)" }}>Buscando endereço pelo CEP...</span>}
-        <Field label="RUA" placeholder="Preenchido automaticamente pelo CEP" value={rua} onChange={(e) => setRua(e.target.value)} />
-        <Field label="COMPLEMENTO (OPCIONAL)" placeholder="Loja, sala..." value={complemento} onChange={(e) => setComplemento(e.target.value)} />
+        <Field label="RUA" placeholder="Preenchido automaticamente pelo CEP" value={rua} onChange={endereco_(setRua)} />
+        <Field label="COMPLEMENTO (OPCIONAL)" placeholder="Loja, sala..." value={complemento} onChange={endereco_(setComplemento)} />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Field label="BAIRRO" value={bairro} onChange={(e) => setBairro(e.target.value)} />
-          <Field label="CIDADE / UF" value={cidadeUf} onChange={(e) => setCidadeUf(e.target.value)} />
+          <Field label="BAIRRO" value={bairro} onChange={endereco_(setBairro)} />
+          <Field label="CIDADE / UF" value={cidadeUf} onChange={endereco_(setCidadeUf)} />
         </div>
 
         {erro && <span role="alert" style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 12, color: "#E6534C" }}>{erro}</span>}
