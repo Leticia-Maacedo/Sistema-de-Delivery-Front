@@ -12,7 +12,7 @@ services:
     envVars:
       # A URL da API entra no build (o Vite substitui import.meta.env.VITE_API_URL).
       - key: VITE_API_URL
-        value: https://entregafood-back-dev.onrender.com
+        value: https://entregafood-api.onrender.com
       - key: NODE_VERSION
         value: "20"
     routes:
