@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { ArrowLeft, CheckCircle2, Circle, KeyRound, RefreshCw, Bike, Store, XCircle } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge";
+import GoogleMapa from "../../components/GoogleMapa";
 import { pedidos, ApiError } from "../../api/client";
 
 const fmt = (n) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
@@ -19,6 +20,7 @@ const INTERVALO_ATUALIZACAO_MS = 10000;
  */
 export default function AcompanharPedidoView({ pedidoId, onBack }) {
   const [pedido, setPedido] = useState(null);
+  const [rastreio, setRastreio] = useState(null);
   const [erro, setErro] = useState("");
   const [atualizando, setAtualizando] = useState(false);
 
@@ -27,6 +29,8 @@ export default function AcompanharPedidoView({ pedidoId, onBack }) {
     setAtualizando(true);
     try {
       setPedido(await pedidos.obter(pedidoId));
+      // Mapa: restaurante, destino e posição do entregador (GET /pedidos/{id}/rastreio).
+      pedidos.rastreio(pedidoId).then(setRastreio).catch(() => setRastreio(null));
       setErro("");
     } catch (e) {
       setErro(e instanceof ApiError ? e.message : "Não foi possível carregar o pedido.");
@@ -101,6 +105,27 @@ export default function AcompanharPedidoView({ pedidoId, onBack }) {
               {retirada ? "Informe este código no balcão ao retirar o pedido." : "Informe este código ao entregador quando receber o pedido."}
             </div>
           </div>
+        </div>
+      )}
+
+      {rastreio && (rastreio.restaurante || rastreio.destino) && !pedido.finalizado && (
+        <div className="ef-card" style={{ padding: 18, marginTop: 14 }}>
+          <div style={{ ...texto, fontSize: 12, color: "var(--muted)", marginBottom: 10 }}>
+            {rastreio.entregador
+              ? `ENTREGADOR A CAMINHO · posição de ${hora(rastreio.entregador.atualizado_em)}`
+              : retirada ? "ONDE RETIRAR O PEDIDO" : "TRAJETO DA ENTREGA"}
+          </div>
+          {retirada ? (
+            <GoogleMapa ponto={rastreio.restaurante} link={rastreio.mapa_url} titulo="Local de retirada" />
+          ) : (
+            <GoogleMapa
+              origem={rastreio.entregador || rastreio.restaurante}
+              destino={rastreio.destino}
+              ponto={rastreio.destino || rastreio.restaurante}
+              link={rastreio.mapa_url}
+              titulo="Trajeto da entrega"
+            />
+          )}
         </div>
       )}
 

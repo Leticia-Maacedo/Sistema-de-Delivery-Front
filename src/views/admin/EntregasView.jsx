@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Truck, Store, Bike, KeyRound, RefreshCw, XCircle, ArrowRight } from "lucide-react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { Truck, Store, Bike, KeyRound, RefreshCw, XCircle, ArrowRight, Navigation } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge";
 import EmptyState from "../../components/EmptyState";
 import PageHeader from "../../components/PageHeader";
@@ -30,6 +30,49 @@ export default function EntregasView({ titulo }) {
   const [erro, setErro] = useState("");
   const [aviso, setAviso] = useState("");
   const [enviando, setEnviando] = useState(false);
+  // Entregador: compartilha a posição do celular enquanto a entrega está em trânsito.
+  const [localizacao, setLocalizacao] = useState({ ativo: false, ultima: null, erro: "" });
+  const rastreioRef = useRef({ watchId: null, ultimoEnvio: 0, pedidoId: null });
+
+  const pararLocalizacao = useCallback(() => {
+    const r = rastreioRef.current;
+    if (r.watchId !== null) navigator.geolocation.clearWatch(r.watchId);
+    rastreioRef.current = { watchId: null, ultimoEnvio: 0, pedidoId: null };
+    setLocalizacao((l) => ({ ...l, ativo: false }));
+  }, []);
+
+  const iniciarLocalizacao = (pedidoId) => {
+    if (!("geolocation" in navigator)) {
+      setLocalizacao({ ativo: false, ultima: null, erro: "Este navegador não informa a localização." });
+      return;
+    }
+    pararLocalizacao();
+    const watchId = navigator.geolocation.watchPosition(
+      async (pos) => {
+        const r = rastreioRef.current;
+        const agora = Date.now();
+        if (agora - r.ultimoEnvio < 15000) return; // no máximo a cada 15 s
+        r.ultimoEnvio = agora;
+        try {
+          await pedidos.enviarLocalizacao(pedidoId, pos.coords.latitude, pos.coords.longitude);
+          setLocalizacao({ ativo: true, ultima: new Date(), erro: "" });
+        } catch (e) {
+          setLocalizacao((l) => ({ ...l, erro: e instanceof ApiError ? e.message : "Falha ao enviar a localização." }));
+        }
+      },
+      (e) => setLocalizacao({ ativo: false, ultima: null, erro: e.code === 1 ? "Permissão de localização negada." : "Não foi possível obter a localização." }),
+      { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 },
+    );
+    rastreioRef.current = { watchId, ultimoEnvio: 0, pedidoId };
+    setLocalizacao({ ativo: true, ultima: null, erro: "" });
+  };
+
+  // Para de enviar ao trocar de pedido, quando a entrega termina ou ao sair da tela.
+  useEffect(() => {
+    const r = rastreioRef.current;
+    if (r.pedidoId && (!detalhe || detalhe.id !== r.pedidoId || detalhe.status !== "em_transito")) pararLocalizacao();
+  }, [detalhe, pararLocalizacao]);
+  useEffect(() => pararLocalizacao, [pararLocalizacao]);
 
   const carregarLista = useCallback(async () => {
     try {
@@ -194,6 +237,23 @@ export default function EntregasView({ titulo }) {
 
               {!detalhe.finalizado && (
                 <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 10 }}>
+                  {titulo === "ENTREGAS" && detalhe.status === "em_transito" && detalhe.tipo_entrega === "delivery" && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        className={localizacao.ativo ? "ef-btn-outline" : "ef-btn-solid"}
+                        style={{ width: "auto", justifyContent: "center" }}
+                        onClick={() => (localizacao.ativo ? pararLocalizacao() : iniciarLocalizacao(detalhe.id))}
+                      >
+                        <Navigation size={14} /> {localizacao.ativo ? "PARAR DE COMPARTILHAR LOCALIZAÇÃO" : "COMPARTILHAR MINHA LOCALIZAÇÃO"}
+                      </button>
+                      <span style={{ ...texto, fontSize: 11, color: localizacao.erro ? "#E6534C" : "var(--muted)" }}>
+                        {localizacao.erro || (localizacao.ultima
+                          ? `Enviada às ${localizacao.ultima.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })} · o cliente vê no mapa`
+                          : localizacao.ativo ? "Obtendo a posição..." : "O cliente acompanha você no mapa.")}
+                      </span>
+                    </div>
+                  )}
                   {aguardandoCodigo ? (
                     <form onSubmit={confirmar} style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                       <KeyRound size={18} color="var(--accent)" />

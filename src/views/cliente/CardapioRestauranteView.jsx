@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, MapPin, ShoppingCart, Plus, Minus } from "lucide-react";
 import EmptyState from "../../components/EmptyState";
+import GoogleMapa from "../../components/GoogleMapa";
 import { consultas, ApiError } from "../../api/client";
 
 const fmt = (n) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
@@ -61,6 +62,12 @@ export default function CardapioRestauranteView({ restauranteId, onBack, onSelec
       <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 12, color: "#d8d8d8", marginTop: 6 }}>
         Taxa de entrega: <span style={{ color: "var(--accent)" }}>{fmt(restaurante.taxa_entrega_km)}/km</span>
       </div>
+
+      {restaurante.local?.latitude != null && (
+        <div style={{ marginTop: 14, maxWidth: 520 }}>
+          <GoogleMapa ponto={restaurante.local} altura={180} titulo={`Localização de ${restaurante.nome_fantasia}`} />
+        </div>
+      )}
 
       <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 10 }}>
         <span style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 700, fontSize: 13, color: "#fff" }}>Cardápio</span>

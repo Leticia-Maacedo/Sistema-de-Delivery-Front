@@ -418,6 +418,21 @@ export const pedidos = {
     apiFetch(`/pedidos/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
   confirmarEntrega: (id, codigo) =>
     apiFetch(`/pedidos/${id}/entrega/confirmar`, { method: "POST", body: JSON.stringify({ codigo }) }),
+  /** GET /pedidos/{id}/rastreio — restaurante, destino, posição do entregador e link do Google Maps */
+  rastreio: (id) => apiFetch(`/pedidos/${id}/rastreio`),
+  /** PATCH /pedidos/{id}/entrega/localizacao — só o entregador que saiu com o pedido */
+  enviarLocalizacao: (id, latitude, longitude) =>
+    apiFetch(`/pedidos/${id}/entrega/localizacao`, { method: "PATCH", body: JSON.stringify({ latitude, longitude }) }),
+};
+
+/* ------------------------------------------------------------------ */
+/* Notificações push (/notificacoes) — ver src/api/push.js               */
+/* ------------------------------------------------------------------ */
+
+export const notificacoes = {
+  chavePublica: () => apiFetch("/notificacoes/chave-publica"),
+  inscrever: (inscricao) => apiFetch("/notificacoes/inscricao", { method: "POST", body: JSON.stringify(inscricao) }),
+  cancelar: (endpoint) => apiFetch("/notificacoes/inscricao", { method: "DELETE", body: JSON.stringify({ endpoint }) }),
 };
 
 /* ------------------------------------------------------------------ */

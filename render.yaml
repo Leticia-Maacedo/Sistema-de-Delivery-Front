@@ -28,3 +28,7 @@ services:
       - path: /index.html
         name: Cache-Control
         value: no-cache
+      # O service worker das notificacoes precisa sempre da versao nova.
+      - path: /sw.js
+        name: Cache-Control
+        value: no-cache

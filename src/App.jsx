@@ -5,6 +5,7 @@ import { NAV_ADMIN_SIDEBAR, ADMIN_TITLES, telaPermitida } from "./data/navigatio
 import { consumeOAuthResultFromQuery, isLoggedIn, cesta, ApiError, getUsuario, getTokenUsuarioId, fetchUsuarioLogado, logout } from "./api/client";
 import ClientSidebar from "./components/ClientSidebar";
 import { exibicaoUsuario } from "./data/usuarioExibicao";
+import { desativarNotificacoes, suportaPush } from "./api/push";
 import SystemStatus from "./components/SystemStatus";
 
 import InicioCategoriasView from "./views/cliente/InicioCategoriasView";
@@ -240,7 +241,9 @@ export default function App() {
     if (destino !== view) setView(destino);
   }, [papel, view]);
 
-  const sair = () => {
+  const sair = async () => {
+    // Antes de apagar a sessão: este navegador para de receber os avisos deste usuário.
+    if (suportaPush()) await desativarNotificacoes().catch(() => {});
     logout();
     setUsuario(null);
     setSacola(null);

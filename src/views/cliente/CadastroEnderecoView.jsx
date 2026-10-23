@@ -1,5 +1,6 @@
 
 import React, { useState } from "react";
+import GoogleMapa from "../../components/GoogleMapa";
 import { MapPin } from "lucide-react";
 import PageHeader from "../../components/PageHeader";
 import Field from "../../components/Field";
@@ -11,8 +12,11 @@ import {
 
 const TIPOS = ["Casa", "Trabalho", "Outro"];
 
+
 export default function CadastroEnderecoView({ onGo }) {
   const [tipo, setTipo] = useState("Casa");
+  // Endereço salvo: mostra a confirmação no Google Maps antes de seguir.
+  const [salvo, setSalvo] = useState(null);
   const [cep, setCep] = useState("");
   const [numero, setNumero] = useState("");
   const [rua, setRua] = useState("");
@@ -121,7 +125,7 @@ export default function CadastroEnderecoView({ onGo }) {
 
       console.log("Endereço salvo com sucesso.");
 
-      onGo("pagina-principal");
+      setSalvo({ latitude, longitude, endereco: enderecoCompleto, tipo });
     } catch (e) {
       console.error("Erro ao salvar endereço:", e);
 
@@ -134,6 +138,24 @@ export default function CadastroEnderecoView({ onGo }) {
     }
   };
 
+
+  if (salvo) {
+    return (
+      <div style={{ maxWidth: 560, margin: "0 auto" }}>
+        <PageHeader Icon={MapPin} title="ENDEREÇO SALVO" subtitle="Confira no mapa se a localização está certa" />
+        <div className="ef-card" style={{ padding: 18, marginTop: 16 }}>
+          <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 13, color: "#fff", marginBottom: 4 }}>{salvo.endereco}</div>
+          <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 11, color: "var(--muted)", marginBottom: 12 }}>
+            {salvo.tipo} · {Number(salvo.latitude).toFixed(5)}, {Number(salvo.longitude).toFixed(5)}
+          </div>
+          <GoogleMapa ponto={salvo} altura={300} titulo="Endereço no Google Maps" />
+        </div>
+        <button className="ef-btn-solid" style={{ marginTop: 16 }} onClick={() => onGo("pagina-principal")}>
+          CONTINUAR
+        </button>
+      </div>
+    );
+  }
   return (
     <div style={{ maxWidth: 460, margin: "40px auto 0" }}>
       <PageHeader

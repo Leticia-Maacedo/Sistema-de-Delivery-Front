@@ -2,6 +2,7 @@ import React from "react";
 import { Truck, LogOut } from "lucide-react";
 import { PAPEIS, LINK_PORTAL_PARCEIRO } from "../data/navigation";
 import { exibicaoUsuario } from "../data/usuarioExibicao";
+import BotaoNotificacoes from "./BotaoNotificacoes";
 
 /**
  * Barra lateral do app (cliente) e do Portal do Parceiro (restaurante e
@@ -40,7 +41,13 @@ export default function ClientSidebar({ view, onGo, usuario, papel, onSair }) {
       )}
 
       {logado && (
-        <div className="ef-card" style={{ padding: 12, marginTop: "auto", display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ marginTop: "auto" }}>
+          <BotaoNotificacoes usuarioId={usuario?.id} />
+        </div>
+      )}
+
+      {logado && (
+        <div className="ef-card" style={{ padding: 12, display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Orbitron', sans-serif", fontSize: 12, color: "#0D0D0D", fontWeight: 700, flexShrink: 0 }}>
             {eu.inicial}
           </div>
