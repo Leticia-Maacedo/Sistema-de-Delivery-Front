@@ -12,7 +12,7 @@ const TIPOS = ["Casa", "Trabalho", "Outro"];
  * Separa o texto salvo ("Rua, 123 - Apto 4, Bairro, Cidade - UF") nos
  * campos do formulário, para alterar um endereço existente.
  */
-function separarEndereco(texto = "") {
+export function separarEndereco(texto = "") {
   const partes = texto.split(", ");
   if (partes.length < 4) return { rua: texto, numero: "", complemento: "", bairro: "", cidadeUf: "" };
   const [rua, numeroCompl, bairro, ...resto] = partes;

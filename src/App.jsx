@@ -30,7 +30,6 @@ import AcompanharPedidoView from "./views/cliente/AcompanharPedidoView";
 import AreaParceiroView from "./views/parceiro/AreaParceiroView";
 import CadastroRestauranteView from "./views/parceiro/CadastroRestauranteView";
 import CardapiosView from "./views/parceiro/CardapiosView";
-import AvaliacoesView from "./views/parceiro/AvaliacoesView";
 
 import DashboardView from "./views/admin/DashboardView";
 import RestaurantesView from "./views/admin/RestaurantesView";
@@ -421,7 +420,6 @@ export default function App() {
       case "cadastro-restaurante": return <CadastroRestauranteView restauranteId={editRestauranteId} onGo={goTo} />;
       case "painel-entregas": return <EntregasView titulo={papel === "entregador" ? "ENTREGAS" : "PEDIDOS"} />;
       case "cardapios": return <CardapiosView onGo={goTo} />;
-      case "avaliacoes": return <AvaliacoesView />;
       case "dashboard": return <DashboardView onOpenOrder={openOrder} />;
       case "restaurantes": return <RestaurantesView />;
       case "pedidos": return <PedidosView onOpenOrder={openOrder} />;

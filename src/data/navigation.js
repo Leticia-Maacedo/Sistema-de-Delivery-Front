@@ -1,6 +1,6 @@
 import {
   Home, Users, Store, Package, ClipboardList, Truck, CreditCard, BarChart3,
-  Settings, Plug, HelpCircle, ListChecks, Search, Star, MapPin, UserCircle,
+  Settings, Plug, HelpCircle, ListChecks, Search, MapPin, UserCircle,
 } from "lucide-react";
 
 /*
@@ -41,15 +41,14 @@ export const PAPEIS = {
   },
   restaurante: {
     titulo: "PORTAL DO PARCEIRO",
-    inicio: "painel-entregas",
+    inicio: "area-parceiro",
     menu: [
-      { key: "painel-entregas", label: "Pedidos", Icon: ClipboardList },
       { key: "area-parceiro", label: "Meu restaurante", Icon: Store },
+      { key: "painel-entregas", label: "Pedidos", Icon: ClipboardList },
       { key: "cardapios", label: "Cardápio", Icon: Package },
-      { key: "avaliacoes", label: "Avaliações", Icon: Star },
       { key: "minha-conta", label: "Minha conta", Icon: UserCircle },
     ],
-    telas: ["painel-entregas", "area-parceiro", "cadastro-restaurante", "cardapios", "avaliacoes", "minha-conta"],
+    telas: ["painel-entregas", "area-parceiro", "cadastro-restaurante", "cardapios", "minha-conta"],
   },
   entregador: {
     titulo: "ENTREGADOR",

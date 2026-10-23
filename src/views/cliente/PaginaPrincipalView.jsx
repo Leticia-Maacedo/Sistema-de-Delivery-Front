@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Bell, Search, Store, MapPin } from "lucide-react";
+import SeloFuncionamento from "../../components/SeloFuncionamento";
 import { CATEGORIES } from "../../data/mockData";
 import { exibicaoUsuario } from "../../data/usuarioExibicao";
 import { consultas, locais, ApiError } from "../../api/client";
@@ -157,6 +158,7 @@ export default function PaginaPrincipalView({ usuario, onGo, onSelectRestaurante
                   <div style={{ ...texto, fontSize: 10, color: "#d8d8d8", marginTop: 4 }}>
                     Entrega: <span style={{ color: "var(--accent)" }}>{fmt(r.taxa_entrega_km)}/km</span>
                   </div>
+                  <div style={{ marginTop: 6 }}><SeloFuncionamento restaurante={r} compacto /></div>
                 </div>
               </div>
             ))}
