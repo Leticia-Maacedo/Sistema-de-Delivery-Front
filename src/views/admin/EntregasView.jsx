@@ -102,7 +102,9 @@ export default function EntregasView({ titulo }) {
   }, []);
 
   useEffect(() => { carregarLista(); }, [carregarLista]);
-  useEffect(() => { setCodigo(""); setAviso(""); carregarDetalhe(selId); }, [selId, carregarDetalhe]);
+  // A mensagem de sucesso não some quando o pedido sai da lista (ex.: "entregue!");
+  // ela só é limpa quando a pessoa escolhe outro pedido.
+  useEffect(() => { setCodigo(""); carregarDetalhe(selId); }, [selId, carregarDetalhe]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -188,7 +190,7 @@ export default function EntregasView({ titulo }) {
             {lista.map((p) => (
               <button
                 key={p.id}
-                onClick={() => setSelId(p.id)}
+                onClick={() => { setAviso(""); setSelId(p.id); }}
                 className="ef-card"
                 style={{ padding: 12, cursor: "pointer", textAlign: "left", border: selId === p.id ? "1px solid var(--accent)" : "1px solid var(--border)" }}
               >
