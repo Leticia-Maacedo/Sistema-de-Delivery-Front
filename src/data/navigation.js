@@ -1,7 +1,4 @@
-import {
-  Home, Users, Store, Package, ClipboardList, Truck, CreditCard, BarChart3,
-  Settings, Plug, HelpCircle, ListChecks, Search, MapPin, UserCircle,
-} from "lucide-react";
+import { Home, Users, Store, Package, ClipboardList, Truck, Search, MapPin, UserCircle } from "lucide-react";
 
 /*
  * Cada tipo de usuário tem a sua própria experiência, como no iFood:
@@ -69,12 +66,6 @@ export const NAV_ADMIN_SIDEBAR = [
   { key: "produtos", label: "Produtos", Icon: Package },
   { key: "pedidos", label: "Pedidos", Icon: ClipboardList },
   { key: "entregas", label: "Entregas", Icon: Truck },
-  { key: "pagamentos", label: "Pagamentos", Icon: CreditCard },
-  { key: "relatorios", label: "Relatórios", Icon: BarChart3 },
-  { key: "configuracoes", label: "Configurações", Icon: Settings },
-  { key: "integracoes", label: "Integrações", Icon: Plug },
-  { key: "suporte", label: "Suporte", Icon: HelpCircle },
-  { key: "funcionalidades", label: "Funcionalidades", Icon: ListChecks },
 ];
 
 PAPEIS.admin = {
@@ -92,8 +83,10 @@ export function telaPermitida(papel, view) {
 
 export const ADMIN_TITLES = {
   dashboard: ["Dashboard", "Visão geral do sistema"],
-  restaurantes: ["Restaurantes", "Gerencie os restaurantes parceiros"],
+  usuarios: ["Usuários", "Contas de clientes, restaurantes, entregadores e administradores"],
+  restaurantes: ["Restaurantes", "Aprove e gerencie os restaurantes parceiros"],
+  produtos: ["Produtos", "Cardápios de todos os restaurantes"],
   pedidos: ["Pedidos", "Todos os pedidos do sistema"],
+  "pedido-detalhe": ["Pedido", "Itens, pagamento e linha do tempo"],
   entregas: ["Entregas em Andamento", "Acompanhe as entregas ativas"],
-  funcionalidades: ["Funcionalidades", "Principais funcionalidades identificadas no fluxo"],
 };

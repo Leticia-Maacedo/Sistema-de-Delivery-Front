@@ -36,7 +36,8 @@ import RestaurantesView from "./views/admin/RestaurantesView";
 import PedidosView from "./views/admin/PedidosView";
 import PedidoDetalheView from "./views/admin/PedidoDetalheView";
 import EntregasView from "./views/admin/EntregasView";
-import FuncionalidadesView from "./views/admin/FuncionalidadesView";
+import UsuariosView from "./views/admin/UsuariosView";
+import ProdutosView from "./views/admin/ProdutosView";
 import EmptyState from "./components/EmptyState";
 
 const CHAVE_ENDERECO = "entregafood_endereco_entrega";
@@ -422,11 +423,12 @@ export default function App() {
       case "painel-entregas": return <EntregasView titulo={papel === "entregador" ? "ENTREGAS" : "PEDIDOS"} />;
       case "cardapios": return <CardapiosView onGo={goTo} />;
       case "dashboard": return <DashboardView onOpenOrder={openOrder} />;
+      case "usuarios": return <UsuariosView />;
       case "restaurantes": return <RestaurantesView />;
+      case "produtos": return <ProdutosView />;
       case "pedidos": return <PedidosView onOpenOrder={openOrder} />;
       case "pedido-detalhe": return <PedidoDetalheView orderId={orderId} onBack={() => setView("pedidos")} />;
       case "entregas": return <EntregasView />;
-      case "funcionalidades": return <FuncionalidadesView />;
       default: return <EmptyState title="EM CONSTRUÇÃO" subtitle="Essa área ainda não foi implementada." />;
     }
   };

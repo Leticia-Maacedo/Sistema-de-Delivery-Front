@@ -254,9 +254,9 @@ export const usuarios = {
 };
 
 /* ------------------------------------------------------------------ */
-/* Endereços (/locais) — o local_controller NÃO usa login, ele espera   */
-/* usuario_id explícito. Por isso guardamos o usuário em cache e        */
-/* montamos o usuario_id aqui (ver getUsuarioId abaixo).                */
+/* Endereços (/locais) — exigem login: cada usuário vê e altera só os   */
+/* próprios endereços (o admin vê todos). O usuario_id no cadastro é    */
+/* opcional; sem ele, a API usa o usuário logado.                       */
 /* ------------------------------------------------------------------ */
 
 export const locais = {
@@ -267,6 +267,14 @@ export const locais = {
   remover: (id) => apiFetch(`/locais/${id}`, { method: "DELETE" }),
 };
 
+/** Endereço de entrega atual: o último cadastrado (a mesma regra que a API usa na taxa de entrega). */
+export async function enderecoDeEntregaAtual(usuarioId) {
+  if (!usuarioId) return null;
+  const lista = (await locais.listar(usuarioId)) || [];
+  const deEntrega = lista.filter((l) => l.tipo !== "restaurante");
+  return deEntrega[deEntrega.length - 1] || null;
+}
+
 /* ------------------------------------------------------------------ */
 /* Consultas do cliente (/consultas) — leitura pública, sem CRUD.        */
 /* Diferente de restaurantes/produtos (admin): só traz restaurante       */
@@ -275,8 +283,17 @@ export const locais = {
 /* ------------------------------------------------------------------ */
 
 export const consultas = {
-  restaurantes: (busca) =>
-    apiFetch(`/consultas/restaurantes${busca ? `?busca=${encodeURIComponent(busca)}` : ""}`),
+  /** Com o endereço (latitude/longitude), só vêm os restaurantes que entregam nele, do mais perto ao mais longe. */
+  restaurantes: (busca, endereco = null) => {
+    const params = new URLSearchParams();
+    if (busca) params.set("busca", busca);
+    if (endereco) {
+      params.set("latitude", endereco.latitude);
+      params.set("longitude", endereco.longitude);
+    }
+    const query = params.toString();
+    return apiFetch(`/consultas/restaurantes${query ? `?${query}` : ""}`);
+  },
   restaurante: (id) => apiFetch(`/consultas/restaurantes/${id}`),
   cardapio: (id) => apiFetch(`/consultas/restaurantes/${id}/cardapio`),
 };

@@ -1,6 +1,6 @@
 import React from "react";
 import { Bike, ChevronRight } from "lucide-react";
-import { CATEGORIES } from "../../data/mockData";
+import { CATEGORIES } from "../../data/categorias";
 
 const DESCRICOES = {
   todos: "Todos os tipos",

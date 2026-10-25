@@ -3,7 +3,7 @@ import { Users, Pencil, Plus, Trash2, X, Search } from "lucide-react";
 import PageHeader from "../../components/PageHeader";
 import Field from "../../components/Field";
 import EmptyState from "../../components/EmptyState";
-import { ApiError, usuarios, obterUsuarioSalvo } from "../../api/client";
+import { ApiError, usuarios, getUsuario } from "../../api/client";
 
 const TIPOS_DE_CONTA = [
   { valor: "cliente", label: "Cliente" },
@@ -15,7 +15,7 @@ const TIPOS_DE_CONTA = [
 const TIPO_LABEL = Object.fromEntries(TIPOS_DE_CONTA.map((t) => [t.valor, t.label]));
 
 export default function UsuariosView() {
-  const eu = obterUsuarioSalvo();
+  const eu = getUsuario();
 
   const [lista, setLista] = useState([]);
   const [carregando, setCarregando] = useState(true);
