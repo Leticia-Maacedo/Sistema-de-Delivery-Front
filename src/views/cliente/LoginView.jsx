@@ -30,6 +30,7 @@ export default function LoginView({
   const [codigoOtp, setCodigoOtp] = useState("");
   const [otpEnviado, setOtpEnviado] = useState(false);
   const [codigoDev, setCodigoDev] = useState("");
+  const [mensagemOtp, setMensagemOtp] = useState("");
 
   const [erro, setErro] = useState(erroInicial);
   const [carregando, setCarregando] = useState(false);
@@ -85,6 +86,7 @@ export default function LoginView({
 
       setTelefoneOtp(telefone);
       setOtpEnviado(true);
+      setMensagemOtp(resposta.detalhe || "");
 
       if (resposta.codigo_dev) {
         setCodigoDev(String(resposta.codigo_dev));
@@ -331,6 +333,12 @@ export default function LoginView({
               </>
             ) : (
               <>
+                {mensagemOtp && (
+                  <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 12, color: "var(--muted)" }}>
+                    {mensagemOtp}
+                  </span>
+                )}
+
                 {codigoDev && (
                   <div
                     style={{
