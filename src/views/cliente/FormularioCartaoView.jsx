@@ -49,6 +49,12 @@ export default function FormularioCartaoView({ pedido, onBack, onPagamentoConfir
     if (numero.replace(/\s/g, "").length !== 16) return "Número do cartão inválido.";
     if (nome.trim().length < 3) return "Informe o nome como está no cartão.";
     if (!/^\d{2}\/\d{2}$/.test(validade)) return "Validade inválida (use MM/AA).";
+    const [mesValidade, anoValidade] = validade.split("/").map(Number);
+    if (mesValidade < 1 || mesValidade > 12) return "Mês da validade inválido: use de 01 a 12 (ex.: 05/30).";
+    const hoje = new Date();
+    if (2000 + anoValidade < hoje.getFullYear() || (2000 + anoValidade === hoje.getFullYear() && mesValidade < hoje.getMonth() + 1)) {
+      return "Cartão vencido: confira a validade.";
+    }
     if (!/^\d{3,4}$/.test(cvv)) return "CVV inválido.";
     if (cpf.replace(/\D/g, "").length !== 11) return "CPF inválido.";
     if (cep.replace(/\D/g, "").length !== 8) return "CEP inválido.";
@@ -87,7 +93,12 @@ export default function FormularioCartaoView({ pedido, onBack, onPagamentoConfir
       }
       onPagamentoConfirmado(pagamento);
     } catch (e) {
-      setErro(e instanceof ApiError ? e.message : "Não foi possível processar o pagamento. Tente novamente.");
+      if (e instanceof ApiError && e.status === 422) {
+        // Validação da API (formato de algum campo): mensagem em português no lugar da do Pydantic.
+        setErro("Confira os dados do cartão (número, validade MM/AA e CVV) e tente novamente.");
+      } else {
+        setErro(e instanceof ApiError ? e.message : "Não foi possível processar o pagamento. Tente novamente.");
+      }
     } finally {
       setEnviando(false);
     }
