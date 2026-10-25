@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { ArrowLeft, CheckCircle2, Circle, KeyRound, RefreshCw, Bike, Store, XCircle, FileText } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge";
 import GoogleMapa from "../../components/GoogleMapa";
+import ConfirmDialog from "../../components/ConfirmDialog";
 import { pedidos, pagamentos, ApiError } from "../../api/client";
 
 const fmt = (n) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
@@ -24,6 +25,7 @@ export default function AcompanharPedidoView({ pedidoId, onBack }) {
   const [erro, setErro] = useState("");
   const [atualizando, setAtualizando] = useState(false);
   const [cancelando, setCancelando] = useState(false);
+  const [confirmarCancelamento, setConfirmarCancelamento] = useState(false);
 
   const carregar = useCallback(async () => {
     if (!pedidoId) return;
@@ -50,7 +52,6 @@ export default function AcompanharPedidoView({ pedidoId, onBack }) {
 
   // RN04: o cliente cancela enquanto o restaurante não aceitou (estorna se já pagou).
   const cancelarPedido = async () => {
-    if (!window.confirm("Cancelar este pedido? Se você já pagou, o valor será estornado.")) return;
     setCancelando(true);
     try {
       setPedido(await pedidos.cancelar(pedidoId));
@@ -59,6 +60,7 @@ export default function AcompanharPedidoView({ pedidoId, onBack }) {
       setErro(e instanceof ApiError ? e.message : "Não foi possível cancelar o pedido.");
     } finally {
       setCancelando(false);
+      setConfirmarCancelamento(false);
     }
   };
 
@@ -115,7 +117,7 @@ export default function AcompanharPedidoView({ pedidoId, onBack }) {
         <button
           className="ef-btn-outline"
           style={{ marginTop: 14, width: "100%", justifyContent: "center", color: "#E6534C", borderColor: "#E6534C" }}
-          onClick={cancelarPedido}
+          onClick={() => setConfirmarCancelamento(true)}
           disabled={cancelando}
         >
           <XCircle size={14} /> {cancelando ? "CANCELANDO..." : "CANCELAR PEDIDO"}
@@ -208,7 +210,12 @@ export default function AcompanharPedidoView({ pedidoId, onBack }) {
         {pedido.pagamento_status && (
           <div style={{ ...texto, fontSize: 11, color: "var(--muted)" }}>Pagamento: {pedido.pagamento_status}</div>
         )}
-        {pedido.nota_fiscal && (
+        {pedido.nota_fiscal && ["estornado", "estorno_pendente"].includes(pedido.pagamento_status) && (
+          <div style={{ ...texto, fontSize: 12, color: "var(--muted)", marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}>
+            <FileText size={14} /> Nota fiscal {pedido.nota_fiscal} cancelada: o pagamento foi estornado.
+          </div>
+        )}
+        {pedido.nota_fiscal && !["estornado", "estorno_pendente"].includes(pedido.pagamento_status) && (
           <button
             className="ef-btn-outline"
             style={{ marginTop: 6, justifyContent: "center" }}
@@ -218,6 +225,18 @@ export default function AcompanharPedidoView({ pedidoId, onBack }) {
           </button>
         )}
       </div>
+
+      <ConfirmDialog
+        aberto={confirmarCancelamento}
+        titulo="CANCELAR PEDIDO?"
+        mensagem="O restaurante ainda não aceitou o seu pedido. Se você já pagou, o valor será estornado para o mesmo cartão ou PIX."
+        textoConfirmar="SIM, CANCELAR"
+        textoCancelar="VOLTAR"
+        perigo
+        carregando={cancelando}
+        onConfirmar={cancelarPedido}
+        onCancelar={() => setConfirmarCancelamento(false)}
+      />
     </div>
   );
 }
