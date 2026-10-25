@@ -428,6 +428,8 @@ export const pedidos = {
     apiFetch(`/pedidos/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
   confirmarEntrega: (id, codigo) =>
     apiFetch(`/pedidos/${id}/entrega/confirmar`, { method: "POST", body: JSON.stringify({ codigo }) }),
+  /** POST /pedidos/{id}/cancelar — cliente cancela enquanto aguarda aceite (RN04); estorna se já pago */
+  cancelar: (id) => apiFetch(`/pedidos/${id}/cancelar`, { method: "POST" }),
   /** GET /pedidos/{id}/rastreio — restaurante, destino, posição do entregador e link do Google Maps */
   rastreio: (id) => apiFetch(`/pedidos/${id}/rastreio`),
   /** PATCH /pedidos/{id}/entrega/localizacao — só o entregador que saiu com o pedido */

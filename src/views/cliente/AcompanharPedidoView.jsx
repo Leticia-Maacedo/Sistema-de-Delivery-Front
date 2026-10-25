@@ -23,6 +23,7 @@ export default function AcompanharPedidoView({ pedidoId, onBack }) {
   const [rastreio, setRastreio] = useState(null);
   const [erro, setErro] = useState("");
   const [atualizando, setAtualizando] = useState(false);
+  const [cancelando, setCancelando] = useState(false);
 
   const carregar = useCallback(async () => {
     if (!pedidoId) return;
@@ -46,6 +47,20 @@ export default function AcompanharPedidoView({ pedidoId, onBack }) {
     const timer = setInterval(carregar, INTERVALO_ATUALIZACAO_MS);
     return () => clearInterval(timer);
   }, [pedido, carregar]);
+
+  // RN04: o cliente cancela enquanto o restaurante não aceitou (estorna se já pagou).
+  const cancelarPedido = async () => {
+    if (!window.confirm("Cancelar este pedido? Se você já pagou, o valor será estornado.")) return;
+    setCancelando(true);
+    try {
+      setPedido(await pedidos.cancelar(pedidoId));
+      setErro("");
+    } catch (e) {
+      setErro(e instanceof ApiError ? e.message : "Não foi possível cancelar o pedido.");
+    } finally {
+      setCancelando(false);
+    }
+  };
 
   const texto = { fontFamily: "'Exo 2', sans-serif" };
 
@@ -95,6 +110,17 @@ export default function AcompanharPedidoView({ pedidoId, onBack }) {
       </div>
 
       {erro && <div style={{ ...texto, fontSize: 12, color: "#E6534C", marginTop: 10 }}>{erro}</div>}
+
+      {pedido.status === "aguardando_aceite" && pedido.codigo_entrega && (
+        <button
+          className="ef-btn-outline"
+          style={{ marginTop: 14, width: "100%", justifyContent: "center", color: "#E6534C", borderColor: "#E6534C" }}
+          onClick={cancelarPedido}
+          disabled={cancelando}
+        >
+          <XCircle size={14} /> {cancelando ? "CANCELANDO..." : "CANCELAR PEDIDO"}
+        </button>
+      )}
 
       {pedido.codigo_entrega && !pedido.finalizado && (
         <div className="ef-card" style={{ padding: 18, marginTop: 18, display: "flex", alignItems: "center", gap: 16, border: "1px solid var(--accent)" }}>
