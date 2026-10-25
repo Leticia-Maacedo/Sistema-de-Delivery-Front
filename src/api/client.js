@@ -160,7 +160,9 @@ export async function fetchUsuarioLogado() {
 /* OTP — login por telefone                                             */
 /* ------------------------------------------------------------------ */
 
-/** POST /auth/telefone/solicitar-codigo -> { detalhe, codigo_dev } */
+/** POST /auth/telefone/solicitar-codigo -> { detalhe, codigo_dev }
+ * O código vai para o e-mail da conta; `detalhe` diz para qual e-mail.
+ * `codigo_dev` só vem quando o back está sem SMTP (desenvolvimento). */
 export async function solicitarCodigoLoginTelefone(telefone) {
   return apiFetch("/auth/telefone/solicitar-codigo", {
     method: "POST",
@@ -181,11 +183,12 @@ export async function verificarCodigoLoginTelefone(telefone, codigo) {
 /* OTP — cadastro por telefone                                          */
 /* ------------------------------------------------------------------ */
 
-/** POST /auth/telefone/cadastro/solicitar-codigo -> { detalhe, codigo_dev } */
-export async function solicitarCodigoCadastroTelefone({ nome, telefone, senha, tipo = "cliente" }) {
+/** POST /auth/telefone/cadastro/solicitar-codigo -> { detalhe, codigo_dev }
+ * O código de confirmação vai para o `email` informado no cadastro. */
+export async function solicitarCodigoCadastroTelefone({ nome, telefone, senha, email, tipo = "cliente" }) {
   return apiFetch("/auth/telefone/cadastro/solicitar-codigo", {
     method: "POST",
-    body: JSON.stringify({ nome, telefone: normalizarTelefone(telefone), senha, tipo }),
+    body: JSON.stringify({ nome, telefone: normalizarTelefone(telefone), senha, email: email || null, tipo }),
   });
 }
 
