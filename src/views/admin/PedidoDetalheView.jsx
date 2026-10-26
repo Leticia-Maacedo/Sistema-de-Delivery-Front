@@ -5,6 +5,7 @@ import DetailRow from "../../components/DetailRow";
 import EmptyState from "../../components/EmptyState";
 import { pedidos, ApiError } from "../../api/client";
 import { fmt, dataHora } from "./PedidosView";
+import { rotuloPagamento } from "../../data/pagamento";
 
 const PAGAMENTO = { cartao: "Cartão de crédito", pix: "PIX", dinheiro: "Dinheiro na entrega" };
 
@@ -41,7 +42,7 @@ export default function PedidoDetalheView({ orderId, onBack }) {
         <DetailRow icon={Store} label="Restaurante" value={o.restaurante_nome || "—"} />
         <DetailRow icon={Truck} label="Entrega" value={o.tipo_entrega === "retirada" ? "Retirada no balcão" : "Delivery"} />
         {o.tipo_entrega === "delivery" && <DetailRow icon={MapPin} label="Endereço de entrega" value={o.endereco_entrega || "—"} />}
-        <DetailRow icon={CreditCard} label="Pagamento" value={`${PAGAMENTO[o.forma_pagamento] || o.forma_pagamento}${o.pagamento_status ? ` · ${o.pagamento_status}` : ""}`} />
+        <DetailRow icon={CreditCard} label="Pagamento" value={`${PAGAMENTO[o.forma_pagamento] || o.forma_pagamento}${o.pagamento_status ? ` · ${rotuloPagamento(o.pagamento_status)}` : ""}`} />
         <div style={{ marginTop: 16, borderTop: "1px solid var(--border)", paddingTop: 14 }}>
           <span style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 700, fontSize: 12, color: "var(--muted)" }}>ITENS DO PEDIDO</span>
           <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>

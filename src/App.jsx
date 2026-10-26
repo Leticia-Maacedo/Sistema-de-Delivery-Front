@@ -317,7 +317,7 @@ export default function App() {
             onAlterar={(local) => abrirFormularioEndereco(local, "enderecos")}
           />
         );
-      case "minha-conta": return <MinhaContaView onUsuarioAtualizado={setUsuario} />;
+      case "minha-conta": return <MinhaContaView onUsuarioAtualizado={setUsuario} onContaEncerrada={sair} />;
       case "pagina-principal": return <PaginaPrincipalView usuario={usuario} onGo={goTo} onSelectRestaurante={openRestaurante} />;
       case "restaurantes-cliente": return <RestaurantesListaView onSelect={openRestaurante} />;
       case "cardapio-restaurante":

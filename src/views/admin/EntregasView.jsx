@@ -4,6 +4,7 @@ import StatusBadge from "../../components/StatusBadge";
 import EmptyState from "../../components/EmptyState";
 import PageHeader from "../../components/PageHeader";
 import { pedidos, ApiError } from "../../api/client";
+import { rotuloPagamento } from "../../data/pagamento";
 
 const fmt = (n) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
 const hora = (iso) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -213,7 +214,7 @@ export default function EntregasView({ titulo }) {
                 <StatusBadge status={detalhe.status_rotulo} />
               </div>
               <div style={{ ...texto, fontSize: 12, color: "var(--muted)", marginTop: 8 }}>
-                {detalhe.tipo_entrega === "retirada" ? "Retirada no balcão" : "Entrega no endereço do cliente"} · {fmt(detalhe.valor_total)} · pagamento {detalhe.pagamento_status || "pendente"}
+                {detalhe.tipo_entrega === "retirada" ? "Retirada no balcão" : "Entrega no endereço do cliente"} · {fmt(detalhe.valor_total)} · pagamento {rotuloPagamento(detalhe.pagamento_status)}
               </div>
               {detalhe.endereco_entrega && (
                 <div style={{ ...texto, fontSize: 13, color: "#fff", marginTop: 6 }}>Entregar em: {detalhe.endereco_entrega}</div>

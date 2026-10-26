@@ -4,6 +4,7 @@ import StatusBadge from "../../components/StatusBadge";
 import GoogleMapa from "../../components/GoogleMapa";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import { pedidos, pagamentos, ApiError } from "../../api/client";
+import { rotuloPagamento } from "../../data/pagamento";
 
 const fmt = (n) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
 const hora = (iso) =>
@@ -208,7 +209,7 @@ export default function AcompanharPedidoView({ pedidoId, onBack }) {
           <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 14, color: "var(--accent)" }}>{fmt(pedido.valor_total)}</span>
         </div>
         {pedido.pagamento_status && (
-          <div style={{ ...texto, fontSize: 11, color: "var(--muted)" }}>Pagamento: {pedido.pagamento_status}</div>
+          <div style={{ ...texto, fontSize: 11, color: "var(--muted)" }}>Pagamento: {rotuloPagamento(pedido.pagamento_status)}</div>
         )}
         {pedido.nota_fiscal && ["estornado", "estorno_pendente"].includes(pedido.pagamento_status) && (
           <div style={{ ...texto, fontSize: 12, color: "var(--muted)", marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}>

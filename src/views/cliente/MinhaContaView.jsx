@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { UserCircle, KeyRound, Save } from "lucide-react";
+import { UserCircle, KeyRound, Save, UserX } from "lucide-react";
 import PageHeader from "../../components/PageHeader";
 import Field from "../../components/Field";
 import { usuarios, fetchUsuarioLogado, saveUsuario, ApiError } from "../../api/client";
@@ -21,7 +21,7 @@ function formatarTelefone(valor) {
  * Senha: PUT /usuarios/{id}/senha, que confere a senha atual.
  * Serve para todos os papéis (cliente, restaurante e entregador).
  */
-export default function MinhaContaView({ onUsuarioAtualizado }) {
+export default function MinhaContaView({ onUsuarioAtualizado, onContaEncerrada }) {
   const [usuario, setUsuario] = useState(null);
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
@@ -34,6 +34,10 @@ export default function MinhaContaView({ onUsuarioAtualizado }) {
   const [senhaConfirma, setSenhaConfirma] = useState("");
   const [msgSenha, setMsgSenha] = useState(null);
   const [salvandoSenha, setSalvandoSenha] = useState(false);
+
+  const [confirmandoEncerrar, setConfirmandoEncerrar] = useState(false);
+  const [encerrando, setEncerrando] = useState(false);
+  const [msgEncerrar, setMsgEncerrar] = useState(null);
 
   useEffect(() => {
     fetchUsuarioLogado().then((u) => {
@@ -92,6 +96,19 @@ export default function MinhaContaView({ onUsuarioAtualizado }) {
       </span>
     );
 
+  // DELETE /usuarios/{id} (RF06): sem histórico a conta é apagada; com pedidos ela é anonimizada.
+  const encerrarConta = async () => {
+    setEncerrando(true);
+    setMsgEncerrar(null);
+    try {
+      await usuarios.remover(usuario.id);
+      onContaEncerrada?.();
+    } catch (e) {
+      setMsgEncerrar({ erro: true, texto: e instanceof ApiError ? e.message : "Não foi possível encerrar a conta." });
+      setEncerrando(false);
+    }
+  };
+
   if (!usuario) {
     return <div style={{ fontFamily: "'Exo 2', sans-serif", color: "var(--muted)" }}>Carregando seus dados...</div>;
   }
@@ -124,6 +141,36 @@ export default function MinhaContaView({ onUsuarioAtualizado }) {
         <button className="ef-btn-outline" style={{ justifyContent: "center" }} onClick={salvarSenha} disabled={salvandoSenha}>
           <KeyRound size={14} /> {salvandoSenha ? "ALTERANDO..." : "ALTERAR SENHA"}
         </button>
+      </div>
+
+      <div className="ef-card" style={{ padding: 22, marginTop: 14, display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 700, fontSize: 12, color: "var(--muted)", letterSpacing: 1 }}>
+          ENCERRAR CONTA
+        </div>
+        <p style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 12, color: "var(--muted)", margin: 0 }}>
+          Seus dados pessoais, endereços e cesta são apagados e você não consegue mais entrar com esta conta.
+          Pedidos já feitos continuam no histórico do restaurante, sem o seu nome.
+        </p>
+        <Mensagem msg={msgEncerrar} />
+        {confirmandoEncerrar ? (
+          <div style={{ display: "flex", gap: 10 }}>
+            <button className="ef-btn-outline" style={{ flex: 1, justifyContent: "center" }} onClick={() => setConfirmandoEncerrar(false)} disabled={encerrando}>
+              VOLTAR
+            </button>
+            <button
+              className="ef-btn-solid"
+              style={{ flex: 1, justifyContent: "center", background: "#E6534C", borderColor: "#E6534C" }}
+              onClick={encerrarConta}
+              disabled={encerrando}
+            >
+              <UserX size={14} /> {encerrando ? "ENCERRANDO..." : "CONFIRMAR ENCERRAMENTO"}
+            </button>
+          </div>
+        ) : (
+          <button className="ef-btn-outline" style={{ justifyContent: "center", color: "#E6534C", borderColor: "#E6534C" }} onClick={() => setConfirmandoEncerrar(true)}>
+            <UserX size={14} /> ENCERRAR MINHA CONTA
+          </button>
+        )}
       </div>
     </div>
   );
