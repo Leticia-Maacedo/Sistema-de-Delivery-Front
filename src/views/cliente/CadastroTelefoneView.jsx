@@ -13,6 +13,7 @@ export default function CadastroTelefoneView({ onGo }) {
   const [codigo, setCodigo] = useState("");
   const [enviado, setEnviado] = useState(false);
   const [codigoDev, setCodigoDev] = useState("");
+  const [mensagem, setMensagem] = useState("");
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
 
@@ -50,11 +51,13 @@ export default function CadastroTelefoneView({ onGo }) {
         nome: cadastro.nome,
         telefone: telefoneLimpo,
         senha: cadastro.senha,
+        email: cadastro.email,
         tipo: cadastro.tipo,
       });
 
       setTelefone(telefoneLimpo);
       setEnviado(true);
+      setMensagem(resposta.detalhe || "");
 
       // Apenas para ambiente acadêmico/desenvolvimento.
       if (resposta.codigo_dev) {
@@ -91,6 +94,7 @@ export default function CadastroTelefoneView({ onGo }) {
     try {
       await confirmarCadastroTelefone({
         nome: cadastro.nome,
+        email: cadastro.email,
         telefone,
         senha: cadastro.senha,
         codigo,
@@ -101,7 +105,8 @@ export default function CadastroTelefoneView({ onGo }) {
         "entregafood_cadastro_telefone"
       );
 
-      onGo("cadastro-endereco");
+      // Cliente cadastra o endereço de entrega; parceiro vai para o Portal.
+      onGo(cadastro.tipo === "restaurante" ? "cadastro-restaurante" : cadastro.tipo === "entregador" ? "painel-entregas" : "cadastro-endereco");
     } catch (e) {
       setErro(
         e instanceof ApiError
@@ -171,7 +176,7 @@ export default function CadastroTelefoneView({ onGo }) {
                 color: "var(--muted)",
               }}
             >
-              Código OTP gerado para {telefone}
+              {mensagem || `Código OTP gerado para ${telefone}`}
             </span>
 
             {codigoDev && (

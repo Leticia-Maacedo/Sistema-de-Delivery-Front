@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { ArrowLeft, CheckCircle2, Circle, KeyRound, RefreshCw, Bike, Store, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Circle, KeyRound, RefreshCw, Bike, Store, XCircle, FileText } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge";
-import { pedidos, ApiError } from "../../api/client";
+import GoogleMapa from "../../components/GoogleMapa";
+import ConfirmDialog from "../../components/ConfirmDialog";
+import { pedidos, pagamentos, ApiError } from "../../api/client";
+import { rotuloPagamento } from "../../data/pagamento";
 
 const fmt = (n) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
 const hora = (iso) =>
@@ -19,14 +22,19 @@ const INTERVALO_ATUALIZACAO_MS = 10000;
  */
 export default function AcompanharPedidoView({ pedidoId, onBack }) {
   const [pedido, setPedido] = useState(null);
+  const [rastreio, setRastreio] = useState(null);
   const [erro, setErro] = useState("");
   const [atualizando, setAtualizando] = useState(false);
+  const [cancelando, setCancelando] = useState(false);
+  const [confirmarCancelamento, setConfirmarCancelamento] = useState(false);
 
   const carregar = useCallback(async () => {
     if (!pedidoId) return;
     setAtualizando(true);
     try {
       setPedido(await pedidos.obter(pedidoId));
+      // Mapa: restaurante, destino e posição do entregador (GET /pedidos/{id}/rastreio).
+      pedidos.rastreio(pedidoId).then(setRastreio).catch(() => setRastreio(null));
       setErro("");
     } catch (e) {
       setErro(e instanceof ApiError ? e.message : "Não foi possível carregar o pedido.");
@@ -42,6 +50,20 @@ export default function AcompanharPedidoView({ pedidoId, onBack }) {
     const timer = setInterval(carregar, INTERVALO_ATUALIZACAO_MS);
     return () => clearInterval(timer);
   }, [pedido, carregar]);
+
+  // RN04: o cliente cancela enquanto o restaurante não aceitou (estorna se já pagou).
+  const cancelarPedido = async () => {
+    setCancelando(true);
+    try {
+      setPedido(await pedidos.cancelar(pedidoId));
+      setErro("");
+    } catch (e) {
+      setErro(e instanceof ApiError ? e.message : "Não foi possível cancelar o pedido.");
+    } finally {
+      setCancelando(false);
+      setConfirmarCancelamento(false);
+    }
+  };
 
   const texto = { fontFamily: "'Exo 2', sans-serif" };
 
@@ -78,6 +100,9 @@ export default function AcompanharPedidoView({ pedidoId, onBack }) {
             {retirada ? <Store size={14} /> : <Bike size={14} />}
             {pedido.restaurante_nome || `Restaurante #${pedido.restaurante_id}`} · {retirada ? "Retirada no balcão" : "Entrega"}
           </div>
+          {!retirada && pedido.endereco_entrega && (
+            <div style={{ ...texto, fontSize: 12, color: "#d8d8d8", marginTop: 4 }}>Entregar em: {pedido.endereco_entrega}</div>
+          )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <StatusBadge status={pedido.status_rotulo} />
@@ -88,6 +113,17 @@ export default function AcompanharPedidoView({ pedidoId, onBack }) {
       </div>
 
       {erro && <div style={{ ...texto, fontSize: 12, color: "#E6534C", marginTop: 10 }}>{erro}</div>}
+
+      {pedido.status === "aguardando_aceite" && pedido.codigo_entrega && (
+        <button
+          className="ef-btn-outline"
+          style={{ marginTop: 14, width: "100%", justifyContent: "center", color: "#E6534C", borderColor: "#E6534C" }}
+          onClick={() => setConfirmarCancelamento(true)}
+          disabled={cancelando}
+        >
+          <XCircle size={14} /> {cancelando ? "CANCELANDO..." : "CANCELAR PEDIDO"}
+        </button>
+      )}
 
       {pedido.codigo_entrega && !pedido.finalizado && (
         <div className="ef-card" style={{ padding: 18, marginTop: 18, display: "flex", alignItems: "center", gap: 16, border: "1px solid var(--accent)" }}>
@@ -101,6 +137,27 @@ export default function AcompanharPedidoView({ pedidoId, onBack }) {
               {retirada ? "Informe este código no balcão ao retirar o pedido." : "Informe este código ao entregador quando receber o pedido."}
             </div>
           </div>
+        </div>
+      )}
+
+      {rastreio && (rastreio.restaurante || rastreio.destino) && !pedido.finalizado && (
+        <div className="ef-card" style={{ padding: 18, marginTop: 14 }}>
+          <div style={{ ...texto, fontSize: 12, color: "var(--muted)", marginBottom: 10 }}>
+            {rastreio.entregador
+              ? `ENTREGADOR A CAMINHO · posição de ${hora(rastreio.entregador.atualizado_em)}`
+              : retirada ? "ONDE RETIRAR O PEDIDO" : "TRAJETO DA ENTREGA"}
+          </div>
+          {retirada ? (
+            <GoogleMapa ponto={rastreio.restaurante} link={rastreio.mapa_url} titulo="Local de retirada" />
+          ) : (
+            <GoogleMapa
+              origem={rastreio.entregador || rastreio.restaurante}
+              destino={rastreio.destino}
+              ponto={rastreio.destino || rastreio.restaurante}
+              link={rastreio.mapa_url}
+              titulo="Trajeto da entrega"
+            />
+          )}
         </div>
       )}
 
@@ -152,9 +209,35 @@ export default function AcompanharPedidoView({ pedidoId, onBack }) {
           <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 14, color: "var(--accent)" }}>{fmt(pedido.valor_total)}</span>
         </div>
         {pedido.pagamento_status && (
-          <div style={{ ...texto, fontSize: 11, color: "var(--muted)" }}>Pagamento: {pedido.pagamento_status}</div>
+          <div style={{ ...texto, fontSize: 11, color: "var(--muted)" }}>Pagamento: {rotuloPagamento(pedido.pagamento_status)}</div>
+        )}
+        {pedido.nota_fiscal && ["estornado", "estorno_pendente"].includes(pedido.pagamento_status) && (
+          <div style={{ ...texto, fontSize: 12, color: "var(--muted)", marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}>
+            <FileText size={14} /> Nota fiscal {pedido.nota_fiscal} cancelada: o pagamento foi estornado.
+          </div>
+        )}
+        {pedido.nota_fiscal && !["estornado", "estorno_pendente"].includes(pedido.pagamento_status) && (
+          <button
+            className="ef-btn-outline"
+            style={{ marginTop: 6, justifyContent: "center" }}
+            onClick={() => pagamentos.baixarNotaFiscal(pedido.id).catch((e) => setErro(e.message))}
+          >
+            <FileText size={14} /> BAIXAR NOTA FISCAL ({pedido.nota_fiscal})
+          </button>
         )}
       </div>
+
+      <ConfirmDialog
+        aberto={confirmarCancelamento}
+        titulo="CANCELAR PEDIDO?"
+        mensagem="O restaurante ainda não aceitou o seu pedido. Se você já pagou, o valor será estornado para o mesmo cartão ou PIX."
+        textoConfirmar="SIM, CANCELAR"
+        textoCancelar="VOLTAR"
+        perigo
+        carregando={cancelando}
+        onConfirmar={cancelarPedido}
+        onCancelar={() => setConfirmarCancelamento(false)}
+      />
     </div>
   );
 }

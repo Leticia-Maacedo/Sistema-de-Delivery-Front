@@ -160,7 +160,9 @@ export async function fetchUsuarioLogado() {
 /* OTP — login por telefone                                             */
 /* ------------------------------------------------------------------ */
 
-/** POST /auth/telefone/solicitar-codigo -> { detalhe, codigo_dev } */
+/** POST /auth/telefone/solicitar-codigo -> { detalhe, codigo_dev }
+ * O código vai para o e-mail da conta; `detalhe` diz para qual e-mail.
+ * `codigo_dev` só vem quando o back está sem SMTP (desenvolvimento). */
 export async function solicitarCodigoLoginTelefone(telefone) {
   return apiFetch("/auth/telefone/solicitar-codigo", {
     method: "POST",
@@ -181,19 +183,20 @@ export async function verificarCodigoLoginTelefone(telefone, codigo) {
 /* OTP — cadastro por telefone                                          */
 /* ------------------------------------------------------------------ */
 
-/** POST /auth/telefone/cadastro/solicitar-codigo -> { detalhe, codigo_dev } */
-export async function solicitarCodigoCadastroTelefone({ nome, telefone, senha, tipo = "cliente" }) {
+/** POST /auth/telefone/cadastro/solicitar-codigo -> { detalhe, codigo_dev }
+ * O código de confirmação vai para o `email` informado no cadastro. */
+export async function solicitarCodigoCadastroTelefone({ nome, telefone, senha, email, tipo = "cliente" }) {
   return apiFetch("/auth/telefone/cadastro/solicitar-codigo", {
     method: "POST",
-    body: JSON.stringify({ nome, telefone: normalizarTelefone(telefone), senha, tipo }),
+    body: JSON.stringify({ nome, telefone: normalizarTelefone(telefone), senha, email: email || null, tipo }),
   });
 }
 
 /** POST /auth/telefone/cadastro/confirmar -> TokenResponse (já salva a sessão) */
-export async function confirmarCadastroTelefone({ telefone, codigo, nome, senha, tipo = "cliente" }) {
+export async function confirmarCadastroTelefone({ telefone, codigo, nome, senha, email, tipo = "cliente" }) {
   const data = await apiFetch("/auth/telefone/cadastro/confirmar", {
     method: "POST",
-    body: JSON.stringify({ telefone: normalizarTelefone(telefone), codigo, nome, senha, tipo }),
+    body: JSON.stringify({ telefone: normalizarTelefone(telefone), codigo, nome, senha, email: email || null, tipo }),
   });
   return guardarSessao(data);
 }
@@ -228,6 +231,14 @@ export async function atualizarUsuario(id, dados) {
   return apiFetch(`/usuarios/${id}`, { method: "PUT", body: JSON.stringify(dados) });
 }
 
+/** PUT /usuarios/{id}/senha — confere a senha atual antes de trocar. */
+export async function alterarSenha(id, senhaAtual, senhaNova) {
+  return apiFetch(`/usuarios/${id}/senha`, {
+    method: "PUT",
+    body: JSON.stringify({ senha_atual: senhaAtual || null, senha_nova: senhaNova }),
+  });
+}
+
 export async function removerUsuario(id) {
   return apiFetch(`/usuarios/${id}`, { method: "DELETE" });
 }
@@ -238,13 +249,14 @@ export const usuarios = {
   listar: listarUsuarios,
   obter: obterUsuario,
   atualizar: atualizarUsuario,
+  alterarSenha,
   remover: removerUsuario,
 };
 
 /* ------------------------------------------------------------------ */
-/* Endereços (/locais) — o local_controller NÃO usa login, ele espera   */
-/* usuario_id explícito. Por isso guardamos o usuário em cache e        */
-/* montamos o usuario_id aqui (ver getUsuarioId abaixo).                */
+/* Endereços (/locais) — exigem login: cada usuário vê e altera só os   */
+/* próprios endereços (o admin vê todos). O usuario_id no cadastro é    */
+/* opcional; sem ele, a API usa o usuário logado.                       */
 /* ------------------------------------------------------------------ */
 
 export const locais = {
@@ -255,6 +267,14 @@ export const locais = {
   remover: (id) => apiFetch(`/locais/${id}`, { method: "DELETE" }),
 };
 
+/** Endereço de entrega atual: o último cadastrado (a mesma regra que a API usa na taxa de entrega). */
+export async function enderecoDeEntregaAtual(usuarioId) {
+  if (!usuarioId) return null;
+  const lista = (await locais.listar(usuarioId)) || [];
+  const deEntrega = lista.filter((l) => l.tipo !== "restaurante");
+  return deEntrega[deEntrega.length - 1] || null;
+}
+
 /* ------------------------------------------------------------------ */
 /* Consultas do cliente (/consultas) — leitura pública, sem CRUD.        */
 /* Diferente de restaurantes/produtos (admin): só traz restaurante       */
@@ -263,8 +283,17 @@ export const locais = {
 /* ------------------------------------------------------------------ */
 
 export const consultas = {
-  restaurantes: (busca) =>
-    apiFetch(`/consultas/restaurantes${busca ? `?busca=${encodeURIComponent(busca)}` : ""}`),
+  /** Com o endereço (latitude/longitude), só vêm os restaurantes que entregam nele, do mais perto ao mais longe. */
+  restaurantes: (busca, endereco = null) => {
+    const params = new URLSearchParams();
+    if (busca) params.set("busca", busca);
+    if (endereco) {
+      params.set("latitude", endereco.latitude);
+      params.set("longitude", endereco.longitude);
+    }
+    const query = params.toString();
+    return apiFetch(`/consultas/restaurantes${query ? `?${query}` : ""}`);
+  },
   restaurante: (id) => apiFetch(`/consultas/restaurantes/${id}`),
   cardapio: (id) => apiFetch(`/consultas/restaurantes/${id}/cardapio`),
 };
@@ -290,8 +319,9 @@ export const cesta = {
     apiFetch(`/cesta/itens/${produtoId}`, { method: "PUT", body: JSON.stringify({ quantidade }) }),
   /** DELETE /cesta/itens/{produto_id} */
   removerItem: (produtoId) => apiFetch(`/cesta/itens/${produtoId}`, { method: "DELETE" }),
-  /** GET /cesta/resumo — subtotal, taxa pela distância e total (retirada = sem taxa) */
-  resumo: (tipoEntrega = "delivery") => apiFetch(`/cesta/resumo?tipo_entrega=${tipoEntrega}`),
+  /** GET /cesta/resumo — subtotal, taxa pela distância até o endereço escolhido e total (retirada = sem taxa) */
+  resumo: (tipoEntrega = "delivery", localId = null) =>
+    apiFetch(`/cesta/resumo?tipo_entrega=${tipoEntrega}${localId ? `&local_id=${localId}` : ""}`),
 };
 
 /* ------------------------------------------------------------------ */
@@ -418,26 +448,99 @@ export const pedidos = {
     apiFetch(`/pedidos/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
   confirmarEntrega: (id, codigo) =>
     apiFetch(`/pedidos/${id}/entrega/confirmar`, { method: "POST", body: JSON.stringify({ codigo }) }),
+  /** POST /pedidos/{id}/cancelar — cliente cancela enquanto aguarda aceite (RN04); estorna se já pago */
+  cancelar: (id) => apiFetch(`/pedidos/${id}/cancelar`, { method: "POST" }),
+  /** GET /pedidos/{id}/rastreio — restaurante, destino, posição do entregador e link do Google Maps */
+  rastreio: (id) => apiFetch(`/pedidos/${id}/rastreio`),
+  /** PATCH /pedidos/{id}/entrega/localizacao — só o entregador que saiu com o pedido */
+  enviarLocalizacao: (id, latitude, longitude) =>
+    apiFetch(`/pedidos/${id}/entrega/localizacao`, { method: "PATCH", body: JSON.stringify({ latitude, longitude }) }),
+};
+
+/* ------------------------------------------------------------------ */
+/* Notificações push (/notificacoes) — ver src/api/push.js               */
+/* ------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------------ */
+/* Portal do Parceiro (/parceiro) — o dono gerencia o PRÓPRIO            */
+/* restaurante e o cardápio. Só para login do tipo "restaurante".        */
+/* ------------------------------------------------------------------ */
+
+export const parceiro = {
+  /** GET /parceiro/restaurante — 404 se o dono ainda não cadastrou */
+  restaurante: () => apiFetch("/parceiro/restaurante"),
+  cadastrar: (dados) => apiFetch("/parceiro/restaurante", { method: "POST", body: JSON.stringify(dados) }),
+  alterar: (dados) => apiFetch("/parceiro/restaurante", { method: "PUT", body: JSON.stringify(dados) }),
+  /** GET /parceiro/resumo — números reais do dia */
+  resumo: () => apiFetch("/parceiro/resumo"),
+  produtos: {
+    listar: () => apiFetch("/parceiro/produtos"),
+    criar: (dados) => apiFetch("/parceiro/produtos", { method: "POST", body: JSON.stringify(dados) }),
+    alterar: (id, dados) => apiFetch(`/parceiro/produtos/${id}`, { method: "PUT", body: JSON.stringify(dados) }),
+    remover: (id) => apiFetch(`/parceiro/produtos/${id}`, { method: "DELETE" }),
+  },
+};
+
+export const notificacoes = {
+  chavePublica: () => apiFetch("/notificacoes/chave-publica"),
+  inscrever: (inscricao) => apiFetch("/notificacoes/inscricao", { method: "POST", body: JSON.stringify(inscricao) }),
+  cancelar: (endpoint) => apiFetch("/notificacoes/inscricao", { method: "DELETE", body: JSON.stringify({ endpoint }) }),
 };
 
 /* ------------------------------------------------------------------ */
 /* Pagamento — rotas REAIS, confirmadas no pagamento_controller.py.     */
-/* Hoje só "cartao" é aceito (EscolhaPagamentoIn é Literal["cartao"]).   */
-/* O cartão em si (número, nome, validade, CVV) NUNCA é enviado — o     */
-/* back só precisa do pedido_id, o pagamento é 100% simulado.           */
+/* Métodos: "cartao", "pix" e "dinheiro" (na entrega). Cartão e PIX vão */
+/* para o Asaas (sandbox); sem a chave no back, o gateway é simulado.   */
+/* O cartão é repassado ao Asaas e o back não grava nada dele.          */
 /* ------------------------------------------------------------------ */
 
 export const pagamentos = {
-  /** PUT /pagamentos/pedidos/{pedido_id}/metodo — hoje só aceita "cartao" */
+  /** PUT /pagamentos/pedidos/{pedido_id}/metodo — "cartao", "pix" ou "dinheiro" */
   escolherTipo: (pedidoId, metodo = "cartao") =>
     apiFetch(`/pagamentos/pedidos/${pedidoId}/metodo`, {
       method: "PUT",
       body: JSON.stringify({ metodo }),
     }),
-  /** POST /pagamentos/cartao — só manda pedido_id, nada de dados do cartão */
-  pagarComCartao: (pedidoId) =>
+  /**
+   * POST /pagamentos/cartao.
+   * `cartao` = { titular, numero, mes_validade, ano_validade, cvv };
+   * `pagador` = { cpf, cep, numero_endereco, telefone } (exigidos pelo Asaas).
+   */
+  pagarComCartao: (pedidoId, cartao, pagador = {}) =>
     apiFetch("/pagamentos/cartao", {
       method: "POST",
-      body: JSON.stringify({ pedido_id: pedidoId, metodo: "cartao" }),
+      body: JSON.stringify({ pedido_id: pedidoId, metodo: "cartao", cartao, ...pagador }),
     }),
+  /** POST /pagamentos/pix — devolve pix_qrcode (imagem data URI) e pix_copia_cola */
+  gerarPix: (pedidoId, cpf) =>
+    apiFetch("/pagamentos/pix", {
+      method: "POST",
+      body: JSON.stringify({ pedido_id: pedidoId, cpf }),
+    }),
+  /** GET /pagamentos/pedidos/{pedido_id} — também atualiza o status do PIX no Asaas */
+  consultar: (pedidoId) => apiFetch(`/pagamentos/pedidos/${pedidoId}`),
+  /** POST /pagamentos/pedidos/{pedido_id}/pix/simular-pagamento — só no sandbox */
+  simularPixPago: (pedidoId) =>
+    apiFetch(`/pagamentos/pedidos/${pedidoId}/pix/simular-pagamento`, { method: "POST" }),
+  /** GET /pagamentos/pedidos/{pedido_id}/nota-fiscal — baixa o PDF da nota */
+  baixarNotaFiscal: async (pedidoId) => {
+    const token = getToken();
+    const res = await fetch(`${API_URL}/pagamentos/pedidos/${pedidoId}/nota-fiscal`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const erro = await res.json().catch(() => ({}));
+      throw new ApiError(erro.detail || `Erro ${res.status} ao baixar a nota fiscal`, res.status, erro.detail);
+    }
+    const disposicao = res.headers.get("Content-Disposition") || "";
+    const nome = /filename="([^"]+)"/.exec(disposicao)?.[1] || `nota-pedido-${pedidoId}.pdf`;
+    const url = URL.createObjectURL(await res.blob());
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = nome;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  },
 };

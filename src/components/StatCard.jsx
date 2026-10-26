@@ -9,7 +9,7 @@ export default function StatCard({ label, value, delta, Icon }) {
       <div>
         <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 11, color: "var(--muted)", letterSpacing: 0.3 }}>{label}</span>
         <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 17, color: "#fff", margin: "6px 0 4px" }}>{value}</div>
-        <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 11, color: "var(--good)" }}>↑ {delta}</span>
+        {delta && <span style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 11, color: "var(--muted)" }}>{delta}</span>}
       </div>
     </div>
   );

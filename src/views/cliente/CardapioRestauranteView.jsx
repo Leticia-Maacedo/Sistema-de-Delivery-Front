@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, MapPin, ShoppingCart, Plus, Minus } from "lucide-react";
+import SeloFuncionamento from "../../components/SeloFuncionamento";
 import EmptyState from "../../components/EmptyState";
+import GoogleMapa from "../../components/GoogleMapa";
 import { consultas, ApiError } from "../../api/client";
 
 const fmt = (n) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
@@ -45,6 +47,8 @@ export default function CardapioRestauranteView({ restauranteId, onBack, onSelec
   }
 
   const { restaurante, itens } = dados;
+  // Fechado ou pausado: o cliente vê o cardápio, mas não monta o pedido.
+  const fechado = restaurante.aberto === false;
 
   return (
     <div style={{ maxWidth: 720, margin: "0 auto", paddingBottom: totalItens > 0 ? 90 : 0 }}>
@@ -61,6 +65,18 @@ export default function CardapioRestauranteView({ restauranteId, onBack, onSelec
       <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 12, color: "#d8d8d8", marginTop: 6 }}>
         Taxa de entrega: <span style={{ color: "var(--accent)" }}>{fmt(restaurante.taxa_entrega_km)}/km</span>
       </div>
+      <div style={{ marginTop: 10 }}><SeloFuncionamento restaurante={restaurante} /></div>
+      {fechado && (
+        <div className="ef-card" style={{ padding: 12, marginTop: 12, border: "1px solid #E6534C", fontFamily: "'Exo 2', sans-serif", fontSize: 12, color: "#d8d8d8" }}>
+          Este restaurante está fechado agora. Você pode ver o cardápio, mas os pedidos só são aceitos no horário de funcionamento.
+        </div>
+      )}
+
+      {restaurante.local?.latitude != null && (
+        <div style={{ marginTop: 14, maxWidth: 520 }}>
+          <GoogleMapa ponto={restaurante.local} altura={180} titulo={`Localização de ${restaurante.nome_fantasia}`} />
+        </div>
+      )}
 
       <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 10 }}>
         <span style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 700, fontSize: 13, color: "#fff" }}>Cardápio</span>
@@ -74,7 +90,7 @@ export default function CardapioRestauranteView({ restauranteId, onBack, onSelec
                 {it.descricao && <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 11, color: "var(--muted)", marginTop: 3 }}>{it.descricao}</div>}
                 <div style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 700, fontSize: 13, color: "var(--accent)", marginTop: 6 }}>{fmt(it.preco)}</div>
               </div>
-              {qtd === 0 ? (
+              {fechado && qtd === 0 ? null : qtd === 0 ? (
                 <button onClick={() => onAdicionar(it.id)} style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "var(--accent)", color: "#0D0D0D", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <Plus size={16} />
                 </button>

@@ -179,7 +179,7 @@ export default function ProdutosView() {
                   <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 11, color: "var(--muted)", marginTop: 4 }}>{p.descricao}</div>
                 )}
                 <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 13, color: "var(--accent)", marginTop: 6 }}>
-                  R$ {Number(p.preco).toFixed(2)}
+                  R$ {Number(p.preco).toFixed(2).replace(".", ",")}
                 </div>
               </div>
               <div style={{ display: "flex", gap: 8 }}>

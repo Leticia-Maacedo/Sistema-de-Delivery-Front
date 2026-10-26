@@ -3,14 +3,15 @@ import { UserPlus } from "lucide-react";
 import PageHeader from "../../components/PageHeader";
 import Field from "../../components/Field";
 
-const TIPOS_DE_CONTA = [
-  { valor: "cliente", label: "Cliente" },
-  { valor: "entregador", label: "Motoboy" },
+// O cliente se cadastra pelo app; restaurante e entregador, pelo Portal
+// do Parceiro (como no iFood): cada entrada só oferece os tipos dela.
+const TIPOS_PARCEIRO = [
   { valor: "restaurante", label: "Restaurante" },
+  { valor: "entregador", label: "Entregador" },
 ];
 
-export default function CadastroDadosView({ onGo }) {
-  const [tipo, setTipo] = useState("cliente");
+export default function CadastroDadosView({ onGo, parceiro = false }) {
+  const [tipo, setTipo] = useState(parceiro ? "restaurante" : "cliente");
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -53,8 +54,8 @@ export default function CadastroDadosView({ onGo }) {
     <div style={{ maxWidth: 380, margin: "0 auto" }}>
       <PageHeader
         Icon={UserPlus}
-        title="SEUS DADOS"
-        subtitle="Crie sua conta EntregaFood"
+        title={parceiro ? "SEJA PARCEIRO" : "SEUS DADOS"}
+        subtitle={parceiro ? "Conta do Portal do Parceiro: restaurante ou entregador" : "Crie sua conta EntregaFood"}
       />
 
       <div
@@ -67,7 +68,7 @@ export default function CadastroDadosView({ onGo }) {
           gap: 14,
         }}
       >
-        <div>
+        {parceiro && (<div>
           <span
             style={{
               fontFamily: "'Exo 2', sans-serif",
@@ -75,11 +76,11 @@ export default function CadastroDadosView({ onGo }) {
               color: "var(--muted)",
             }}
           >
-            TIPO DE CONTA
+            VOCÊ É
           </span>
 
           <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-            {TIPOS_DE_CONTA.map((t) => (
+            {TIPOS_PARCEIRO.map((t) => (
               <button
                 key={t.valor}
                 onClick={() => setTipo(t.valor)}
@@ -109,10 +110,10 @@ export default function CadastroDadosView({ onGo }) {
               </button>
             ))}
           </div>
-        </div>
+        </div>)}
 
         <Field
-          label="NOME COMPLETO"
+          label={parceiro && tipo === "restaurante" ? "NOME DO RESPONSÁVEL" : "NOME COMPLETO"}
           placeholder="Seu nome"
           value={nome}
           onChange={(e) => setNome(e.target.value)}
@@ -174,7 +175,7 @@ export default function CadastroDadosView({ onGo }) {
               color: "var(--accent)",
               cursor: "pointer",
             }}
-            onClick={() => onGo("login")}
+            onClick={() => onGo(parceiro ? "login-parceiro" : "login")}
           >
             ENTRAR
           </span>
