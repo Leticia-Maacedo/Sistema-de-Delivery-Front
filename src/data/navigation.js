@@ -1,4 +1,4 @@
-import { Home, Users, Store, Package, ClipboardList, Truck, Search, MapPin, UserCircle } from "lucide-react";
+import { Home, Users, Store, Package, ClipboardList, Truck, Search, MapPin, UserCircle, BarChart3 } from "lucide-react";
 
 /*
  * Cada tipo de usuário tem a sua própria experiência, como no iFood:
@@ -42,10 +42,11 @@ export const PAPEIS = {
     menu: [
       { key: "area-parceiro", label: "Meu restaurante", Icon: Store },
       { key: "painel-entregas", label: "Pedidos", Icon: ClipboardList },
+      { key: "relatorios", label: "Relatórios", Icon: BarChart3 },
       { key: "cardapios", label: "Cardápio", Icon: Package },
       { key: "minha-conta", label: "Minha conta", Icon: UserCircle },
     ],
-    telas: ["painel-entregas", "area-parceiro", "cadastro-restaurante", "cardapios", "minha-conta"],
+    telas: ["painel-entregas", "relatorios", "area-parceiro", "cadastro-restaurante", "cardapios", "minha-conta"],
   },
   entregador: {
     titulo: "ENTREGADOR",
@@ -66,6 +67,7 @@ export const NAV_ADMIN_SIDEBAR = [
   { key: "produtos", label: "Produtos", Icon: Package },
   { key: "pedidos", label: "Pedidos", Icon: ClipboardList },
   { key: "entregas", label: "Entregas", Icon: Truck },
+  { key: "relatorios", label: "Relatórios", Icon: BarChart3 },
 ];
 
 PAPEIS.admin = {
@@ -89,4 +91,5 @@ export const ADMIN_TITLES = {
   pedidos: ["Pedidos", "Todos os pedidos do sistema"],
   "pedido-detalhe": ["Pedido", "Itens, pagamento e linha do tempo"],
   entregas: ["Entregas em Andamento", "Acompanhe as entregas ativas"],
+  relatorios: ["Relatórios", "Receita, pedidos e formas de pagamento"],
 };
