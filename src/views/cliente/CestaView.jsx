@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, Trash2, Plus, Minus, ShoppingCart, ShoppingBag, Bike, Store, MapPin } from "lucide-react";
 import EmptyState from "../../components/EmptyState";
+import SugestoesProdutos from "../../components/SugestoesProdutos";
 import { cesta } from "../../api/client";
 import { listarEnderecosDoCliente } from "./EnderecosView";
 
@@ -25,12 +26,15 @@ const TIPOS_ENTREGA = [
  *
  * Na entrega, o cliente vê para qual endereço vai o pedido e pode trocar
  * por outro dos seus endereços ou cadastrar um novo (`localId`).
+ *
+ * Abaixo dos itens ficam as sugestões do mesmo restaurante (Sprint 4):
+ * o que costuma ser pedido junto com o que já está na cesta.
  */
 export default function CestaView({
   sacola, carregando, erro, tipoEntrega, onTipoEntregaChange,
   onAumentar, onDiminuir, onRemoverItem,
   onBack, onContinuarComprando, onIrParaPagamento,
-  localId, onTrocarEndereco, onNovoEndereco,
+  localId, onTrocarEndereco, onNovoEndereco, onAdicionarSugestao,
 }) {
   const [resumo, setResumo] = useState(null);
   const [carregandoResumo, setCarregandoResumo] = useState(false);
@@ -114,6 +118,15 @@ export default function CestaView({
               </div>
             ))}
           </div>
+
+          {onAdicionarSugestao && (
+            <SugestoesProdutos
+              restauranteId={resumo?.restaurante_id}
+              naCesta={itens.map((i) => i.produto_id)}
+              onAdicionar={onAdicionarSugestao}
+              titulo="Que tal adicionar?"
+            />
+          )}
 
           <div style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 700, fontSize: 12, color: "var(--muted)", marginTop: 20, letterSpacing: 1 }}>
             COMO VOCÊ QUER RECEBER?

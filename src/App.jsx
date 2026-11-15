@@ -34,6 +34,7 @@ import CardapiosView from "./views/parceiro/CardapiosView";
 import DashboardView from "./views/admin/DashboardView";
 import RestaurantesView from "./views/admin/RestaurantesView";
 import PedidosView from "./views/admin/PedidosView";
+import RelatoriosView from "./views/admin/RelatoriosView";
 import PedidoDetalheView from "./views/admin/PedidoDetalheView";
 import EntregasView from "./views/admin/EntregasView";
 import UsuariosView from "./views/admin/UsuariosView";
@@ -359,6 +360,7 @@ export default function App() {
             localId={enderecoEntregaId}
             onTrocarEndereco={setEnderecoEntregaId}
             onNovoEndereco={() => abrirFormularioEndereco(null, "cesta")}
+            onAdicionarSugestao={adicionarAoCarrinho}
             onIrParaPagamento={(resumo) => {
               setResumoCesta(resumo);
               goTo("pedido-tipo-pagamento");
@@ -427,6 +429,7 @@ export default function App() {
       case "restaurantes": return <RestaurantesView />;
       case "produtos": return <ProdutosView />;
       case "pedidos": return <PedidosView onOpenOrder={openOrder} />;
+      case "relatorios": return <RelatoriosView papel={papel} />;
       case "pedido-detalhe": return <PedidoDetalheView orderId={orderId} onBack={() => setView("pedidos")} />;
       case "entregas": return <EntregasView />;
       default: return <EmptyState title="EM CONSTRUÇÃO" subtitle="Essa área ainda não foi implementada." />;

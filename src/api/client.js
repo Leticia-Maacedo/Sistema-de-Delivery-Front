@@ -296,6 +296,12 @@ export const consultas = {
   },
   restaurante: (id) => apiFetch(`/consultas/restaurantes/${id}`),
   cardapio: (id) => apiFetch(`/consultas/restaurantes/${id}/cardapio`),
+  /** GET /consultas/restaurantes/{id}/sugestoes — o que costuma ir junto com a cesta, depois os mais pedidos. */
+  sugestoes: (id, naCesta = [], limite = 4) => {
+    const params = new URLSearchParams({ limite: String(limite) });
+    naCesta.forEach((produtoId) => params.append("na_cesta", String(produtoId)));
+    return apiFetch(`/consultas/restaurantes/${id}/sugestoes?${params}`);
+  },
 };
 
 /* ------------------------------------------------------------------ */
@@ -348,6 +354,11 @@ export const produtos = {
   obter: (id) => apiFetch(`/produtos/${id}`),
   atualizar: (id, dados) => apiFetch(`/produtos/${id}`, { method: "PUT", body: JSON.stringify(dados) }),
   remover: (id) => apiFetch(`/produtos/${id}`, { method: "DELETE" }),
+  /** Estoque (Sprint 4): null = o produto não controla estoque. */
+  estoque: (id) => apiFetch(`/produtos/${id}/estoque`),
+  definirEstoque: (id, estoque) => apiFetch(`/produtos/${id}/estoque`, { method: "PUT", body: JSON.stringify({ estoque }) }),
+  /** Entrada (positivo) ou saída (negativo) de unidades; 400 se a saída passar do estoque. */
+  ajustarEstoque: (id, ajuste) => apiFetch(`/produtos/${id}/estoque`, { method: "PATCH", body: JSON.stringify({ ajuste }) }),
 };
 
 /* ------------------------------------------------------------------ */
