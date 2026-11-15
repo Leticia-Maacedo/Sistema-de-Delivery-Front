@@ -4,6 +4,7 @@ import SeloFuncionamento from "../../components/SeloFuncionamento";
 import EmptyState from "../../components/EmptyState";
 import GoogleMapa from "../../components/GoogleMapa";
 import SugestoesProdutos from "../../components/SugestoesProdutos";
+import CompartilharRestaurante from "../../components/CompartilharRestaurante";
 import { consultas, ApiError } from "../../api/client";
 
 const fmt = (n) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
@@ -71,6 +72,7 @@ export default function CardapioRestauranteView({ restauranteId, onBack, onSelec
         Taxa de entrega: <span style={{ color: "var(--accent)" }}>{fmt(restaurante.taxa_entrega_km)}/km</span>
       </div>
       <div style={{ marginTop: 10 }}><SeloFuncionamento restaurante={restaurante} /></div>
+      <CompartilharRestaurante restaurante={restaurante} />
       {fechado && (
         <div className="ef-card" style={{ padding: 12, marginTop: 12, border: "1px solid #E6534C", fontFamily: "'Exo 2', sans-serif", fontSize: 12, color: "#d8d8d8" }}>
           Este restaurante está fechado agora. Você pode ver o cardápio, mas os pedidos só são aceitos no horário de funcionamento.

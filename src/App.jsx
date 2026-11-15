@@ -44,6 +44,8 @@ import EmptyState from "./components/EmptyState";
 
 const CHAVE_ENDERECO = "entregafood_endereco_entrega";
 
+const ABRIR_RESTAURANTE = "entregafood_abrir_restaurante";
+
 export default function App() {
   // O site abre no login: sem conta, nenhuma outra tela é liberada.
   const [view, setView] = useState("login");
@@ -201,6 +203,16 @@ export default function App() {
   // Ao carregar, verifica se voltamos de um login OAuth (Google/Facebook).
   // O oauth_controller redireciona para "/?oauth_token=<jwt>" (sucesso)
   // ou "/?oauth_erro=<mensagem>" (falha) depois do callback.
+  // Link compartilhado nas redes sociais: /?restaurante={id} abre o cardápio
+  // (depois do login, se a pessoa ainda não entrou). Ver CompartilharRestaurante.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("restaurante");
+    if (id && /^\d+$/.test(id)) {
+      try { sessionStorage.setItem(ABRIR_RESTAURANTE, id); } catch { /* sem sessionStorage */ }
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
+
   useEffect(() => {
     const { token, erro } = consumeOAuthResultFromQuery();
     if (token) {
@@ -273,6 +285,18 @@ export default function App() {
     const destino = telaPermitida(papel, view);
     if (destino !== view) setView(destino);
   }, [papel, view]);
+
+  // Abre o restaurante do link compartilhado assim que houver um cliente logado.
+  useEffect(() => {
+    if (papel !== "cliente") return;
+    let id = null;
+    try { id = sessionStorage.getItem(ABRIR_RESTAURANTE); } catch { /* sem sessionStorage */ }
+    if (!id) return;
+    openRestaurante(Number(id));
+    // Apaga depois deste ciclo: no modo de desenvolvimento o React roda os efeitos duas vezes.
+    setTimeout(() => { try { sessionStorage.removeItem(ABRIR_RESTAURANTE); } catch { /* idem */ } }, 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [papel]);
 
   const sair = async () => {
     // Antes de apagar a sessão: este navegador para de receber os avisos deste usuário.
