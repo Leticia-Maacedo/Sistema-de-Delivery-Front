@@ -489,6 +489,8 @@ export const parceiro = {
     criar: (dados) => apiFetch("/parceiro/produtos", { method: "POST", body: JSON.stringify(dados) }),
     alterar: (id, dados) => apiFetch(`/parceiro/produtos/${id}`, { method: "PUT", body: JSON.stringify(dados) }),
     remover: (id) => apiFetch(`/parceiro/produtos/${id}`, { method: "DELETE" }),
+    /** GET /parceiro/produtos/codigo-barras/{codigo} — 404 se nenhum item tem o código */
+    porCodigoBarras: (codigo) => apiFetch(`/parceiro/produtos/codigo-barras/${encodeURIComponent(codigo)}`),
   },
 };
 

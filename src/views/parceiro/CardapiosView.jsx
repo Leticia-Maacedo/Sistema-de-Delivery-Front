@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Package, Pencil, Trash2, Plus, X, Boxes } from "lucide-react";
+import React, { lazy, Suspense, useState, useEffect, useCallback } from "react";
+import { Package, Pencil, Trash2, Plus, X, Boxes, ScanBarcode } from "lucide-react";
 import PageHeader from "../../components/PageHeader";
 import Field from "../../components/Field";
 import Toggle from "../../components/Toggle";
+// O leitor (html5-qrcode) só é baixado quando a câmera é aberta.
+const LeitorCodigo = lazy(() => import("../../components/LeitorCodigo"));
 import { parceiro, produtos, ApiError } from "../../api/client";
 
 const fmt = (n) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
-const VAZIO = { id: null, nome: "", descricao: "", preco: "", disponivel: true, controlaEstoque: false, estoque: "", estoqueOriginal: null };
+const VAZIO = { id: null, nome: "", descricao: "", preco: "", disponivel: true, controlaEstoque: false, estoque: "", estoqueOriginal: null, codigoBarras: "", codigoOriginal: null };
 // Até este número o item aparece com o aviso de estoque baixo.
 const ESTOQUE_BAIXO = 5;
 const soDigitos = (v) => v.replace(/[^0-9]/g, "");
@@ -37,6 +39,11 @@ function SeloEstoque({ item }) {
  * (perda) pelo PATCH /produtos/{id}/estoque, que nunca deixa negativo.
  * Cada pedido baixa o estoque e o cancelamento devolve (feito no back);
  * com 0 o item fica esgotado e some do cardápio do cliente.
+ *
+ * Código de barras (Backlog): cada item pode guardar o EAN da embalagem
+ * (lido pela câmera ou digitado; a API confere o dígito verificador). O botão
+ * LER CÓDIGO DE BARRAS acha o item pela embalagem e abre a entrada de estoque;
+ * se nenhum item tiver o código, abre o cadastro de um item novo com ele.
  */
 export default function CardapiosView({ onGo }) {
   const [itens, setItens] = useState(null);
@@ -47,6 +54,8 @@ export default function CardapiosView({ onGo }) {
   const [confirmarExclusao, setConfirmarExclusao] = useState(null);
   const [semRestaurante, setSemRestaurante] = useState(false);
   const [ajuste, setAjuste] = useState(null); // { id, quantidade, erro, salvando }
+  const [leitor, setLeitor] = useState(null); // "buscar" | "form"
+  const [destacado, setDestacado] = useState(null);
 
   const carregar = useCallback(async () => {
     try {
@@ -77,6 +86,8 @@ export default function CardapiosView({ onGo }) {
       // Só manda o estoque quando ele mudou, para não sobrescrever uma baixa
       // feita por um pedido enquanto o formulário estava aberto.
       if (!form.id || estoque !== form.estoqueOriginal) dados.estoque = estoque;
+      const codigo = form.codigoBarras.trim() || null;
+      if (!form.id ? codigo : codigo !== form.codigoOriginal) dados.codigo_barras = codigo;
       if (form.id) await parceiro.produtos.alterar(form.id, dados);
       else await parceiro.produtos.criar(dados);
       setForm(null);
@@ -114,6 +125,29 @@ export default function CardapiosView({ onGo }) {
     }
   };
 
+  // Leitor de código de barras: acha o item pela embalagem.
+  const codigoLido = async (codigo) => {
+    const modo = leitor;
+    setLeitor(null);
+    if (modo === "form") {
+      setForm((f) => ({ ...f, codigoBarras: codigo }));
+      return;
+    }
+    setErro("");
+    try {
+      const item = await parceiro.produtos.porCodigoBarras(codigo);
+      setDestacado(item.id);
+      if (item.estoque != null) setAjuste({ id: item.id, quantidade: "", erro: "" });
+      setTimeout(() => document.getElementById(`item-${item.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) {
+        setErroForm("");
+        setForm({ ...VAZIO, codigoBarras: codigo });
+        setErro(`Nenhum item tem o código ${codigo}. Cadastre o item novo abaixo.`);
+      } else setErro(e instanceof ApiError ? e.message : "Não foi possível buscar o código.");
+    }
+  };
+
   const excluir = async (item) => {
     setErro("");
     try {
@@ -143,6 +177,10 @@ export default function CardapiosView({ onGo }) {
   return (
     <div style={{ maxWidth: 680, margin: "0 auto" }}>
       <PageHeader Icon={Package} title="CARDÁPIO" subtitle="Inclua pratos, altere preços, escolha o que está disponível e controle o estoque" />
+
+      <button className="ef-btn-outline" style={{ marginTop: 14, width: "auto" }} onClick={() => setLeitor("buscar")}>
+        <ScanBarcode size={14} /> LER CÓDIGO DE BARRAS
+      </button>
 
       {itens?.some((i) => i.estoque != null && i.estoque <= ESTOQUE_BAIXO) && (
         <div className="ef-card" style={{ ...texto, padding: 12, marginTop: 14, fontSize: 12, color: "#d8d8d8", border: "1px solid #F5A623" }}>
@@ -174,6 +212,15 @@ export default function CardapiosView({ onGo }) {
           {form.controlaEstoque && (
             <Field label="QUANTIDADE EM ESTOQUE" placeholder="20" inputMode="numeric" value={form.estoque} onChange={(e) => setForm({ ...form, estoque: soDigitos(e.target.value) })} />
           )}
+          <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+            <div style={{ flex: 1 }}>
+              <Field label="CÓDIGO DE BARRAS (OPCIONAL)" placeholder="7894900011517" inputMode="numeric" value={form.codigoBarras}
+                onChange={(e) => setForm({ ...form, codigoBarras: soDigitos(e.target.value).slice(0, 14) })} />
+            </div>
+            <button type="button" className="ef-btn-outline" aria-label="Ler o código de barras com a câmera" onClick={() => setLeitor("form")} style={{ width: "auto", marginBottom: 2 }}>
+              <ScanBarcode size={14} />
+            </button>
+          </div>
           {erroForm && <span role="alert" style={{ ...texto, fontSize: 12, color: "#E6534C" }}>{erroForm}</span>}
           <button className="ef-btn-solid" onClick={salvar} disabled={salvando}>
             {salvando ? "SALVANDO..." : form.id ? "SALVAR ALTERAÇÕES" : "INCLUIR NO CARDÁPIO"}
@@ -194,7 +241,7 @@ export default function CardapiosView({ onGo }) {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
         {(itens || []).map((it) => (
-          <div key={it.id} className="ef-card" style={{ padding: 14 }}>
+          <div key={it.id} id={`item-${it.id}`} className="ef-card" style={{ padding: 14, border: destacado === it.id ? "1px solid var(--accent)" : undefined }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <Toggle on={it.disponivel} onClick={() => alternar(it)} />
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -205,7 +252,10 @@ export default function CardapiosView({ onGo }) {
                 <div style={{ ...texto, fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
                   {fmt(it.preco)}{it.descricao ? ` · ${it.descricao}` : ""}
                 </div>
-                <div style={{ marginTop: 6 }}><SeloEstoque item={it} /></div>
+                <div style={{ marginTop: 6, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <SeloEstoque item={it} />
+                  {it.codigo_barras && <span style={{ ...texto, fontSize: 10, color: "var(--muted)", display: "flex", alignItems: "center", gap: 4 }}><ScanBarcode size={11} /> {it.codigo_barras}</span>}
+                </div>
               </div>
               {it.estoque != null && (
                 <button
@@ -226,6 +276,7 @@ export default function CardapiosView({ onGo }) {
                   setForm({
                     id: it.id, nome: it.nome, descricao: it.descricao || "", preco: String(it.preco).replace(".", ","), disponivel: it.disponivel,
                     controlaEstoque: it.estoque != null, estoque: it.estoque != null ? String(it.estoque) : "", estoqueOriginal: it.estoque ?? null,
+                    codigoBarras: it.codigo_barras || "", codigoOriginal: it.codigo_barras ?? null,
                   });
                 }}
               >
@@ -267,6 +318,10 @@ export default function CardapiosView({ onGo }) {
           </div>
         ))}
       </div>
+      {leitor && (
+        <Suspense fallback={null}><LeitorCodigo tipo="barras" titulo={leitor === "form" ? "Código de barras do item" : "Achar item pelo código de barras"}
+          onLido={codigoLido} onFechar={() => setLeitor(null)} /></Suspense>
+      )}
     </div>
   );
 }

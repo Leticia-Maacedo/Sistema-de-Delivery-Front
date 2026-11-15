@@ -1,4 +1,4 @@
-import { Home, Users, Store, Package, ClipboardList, Truck, Search, MapPin, UserCircle, BarChart3 } from "lucide-react";
+import { Home, Users, Store, Package, ClipboardList, Truck, Search, MapPin, UserCircle, BarChart3, Megaphone } from "lucide-react";
 
 /*
  * Cada tipo de usuário tem a sua própria experiência, como no iFood:
@@ -42,11 +42,12 @@ export const PAPEIS = {
     menu: [
       { key: "area-parceiro", label: "Meu restaurante", Icon: Store },
       { key: "painel-entregas", label: "Pedidos", Icon: ClipboardList },
+      { key: "painel-chamada", label: "Painel de chamada", Icon: Megaphone },
       { key: "relatorios", label: "Relatórios", Icon: BarChart3 },
       { key: "cardapios", label: "Cardápio", Icon: Package },
       { key: "minha-conta", label: "Minha conta", Icon: UserCircle },
     ],
-    telas: ["painel-entregas", "relatorios", "area-parceiro", "cadastro-restaurante", "cardapios", "minha-conta"],
+    telas: ["painel-entregas", "painel-chamada", "relatorios", "area-parceiro", "cadastro-restaurante", "cardapios", "minha-conta"],
   },
   entregador: {
     titulo: "ENTREGADOR",

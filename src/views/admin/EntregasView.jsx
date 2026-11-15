@@ -1,8 +1,12 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Truck, Store, Bike, KeyRound, RefreshCw, XCircle, ArrowRight, Navigation } from "lucide-react";
+import React, { lazy, Suspense, useState, useEffect, useCallback, useRef } from "react";
+import { Truck, Store, Bike, KeyRound, RefreshCw, XCircle, ArrowRight, Navigation, QrCode } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge";
 import EmptyState from "../../components/EmptyState";
 import PageHeader from "../../components/PageHeader";
+// O leitor (html5-qrcode) só é baixado quando a câmera é aberta.
+const LeitorCodigo = lazy(() => import("../../components/LeitorCodigo"));
+import RotaEntregas from "../../components/RotaEntregas";
+import { lerQrEntrega } from "../../data/qrEntrega";
 import { pedidos, ApiError } from "../../api/client";
 import { rotuloPagamento } from "../../data/pagamento";
 
@@ -31,6 +35,7 @@ export default function EntregasView({ titulo }) {
   const [erro, setErro] = useState("");
   const [aviso, setAviso] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [lendoQr, setLendoQr] = useState(false);
   // Entregador: compartilha a posição do celular enquanto a entrega está em trânsito.
   const [localizacao, setLocalizacao] = useState({ ativo: false, ultima: null, erro: "" });
   const rastreioRef = useRef({ watchId: null, ultimoEnvio: 0, pedidoId: null });
@@ -148,6 +153,20 @@ export default function EntregasView({ titulo }) {
     executar(() => pedidos.confirmarEntrega(detalhe.id, codigo), (p) => `Pedido #${p.id} entregue!`);
   };
 
+  // Leitor de QR Code: o QR do cliente leva o pedido e o código; confere o pedido e confirma.
+  const qrLido = useCallback((texto) => {
+    setLendoQr(false);
+    const r = lerQrEntrega(texto, detalhe?.id);
+    if (r.erro) {
+      setAviso("");
+      setErro(r.erro);
+      return;
+    }
+    setCodigo(r.codigo);
+    executar(() => pedidos.confirmarEntrega(detalhe.id, r.codigo), (p) => `Pedido #${p.id} entregue (QR Code lido)!`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detalhe]);
+
   const texto = { fontFamily: "'Exo 2', sans-serif" };
 
   if (lista === null) {
@@ -176,6 +195,8 @@ export default function EntregasView({ titulo }) {
           <RefreshCw size={12} /> ATUALIZAR
         </button>
       </div>
+
+      {titulo === "ENTREGAS" && <RotaEntregas lista={lista} />}
 
       {erro && <div style={{ ...texto, fontSize: 12, color: "#E6534C", marginBottom: 12 }}>{erro}</div>}
       {aviso && <div style={{ ...texto, fontSize: 12, color: "var(--accent)", marginBottom: 12 }}>{aviso}</div>}
@@ -275,6 +296,9 @@ export default function EntregasView({ titulo }) {
                       <button className="ef-btn-solid" type="submit" disabled={enviando || codigo.length < 4} style={{ width: "auto" }}>
                         CONFIRMAR ENTREGA
                       </button>
+                      <button className="ef-btn-outline" type="button" disabled={enviando} onClick={() => { setErro(""); setLendoQr(true); }} style={{ width: "auto" }}>
+                        <QrCode size={14} /> LER QR CODE DO CLIENTE
+                      </button>
                     </form>
                   ) : (
                     detalhe.proximo_status && (
@@ -297,6 +321,9 @@ export default function EntregasView({ titulo }) {
             </div>
           )}
         </div>
+      )}
+      {lendoQr && detalhe && (
+        <Suspense fallback={null}><LeitorCodigo tipo="qr" titulo={`QR Code do cliente — pedido #${detalhe.id}`} onLido={qrLido} onFechar={() => setLendoQr(false)} /></Suspense>
       )}
     </div>
   );

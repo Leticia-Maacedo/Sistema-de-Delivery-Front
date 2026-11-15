@@ -3,6 +3,7 @@ import { ArrowLeft, CheckCircle2, Circle, KeyRound, RefreshCw, Bike, Store, XCir
 import StatusBadge from "../../components/StatusBadge";
 import GoogleMapa from "../../components/GoogleMapa";
 import ConfirmDialog from "../../components/ConfirmDialog";
+import QrCodeEntrega from "../../components/QrCodeEntrega";
 import { pedidos, pagamentos, ApiError } from "../../api/client";
 import { rotuloPagamento } from "../../data/pagamento";
 
@@ -136,7 +137,11 @@ export default function AcompanharPedidoView({ pedidoId, onBack }) {
             <div style={{ ...texto, fontSize: 12, color: "#d8d8d8", marginTop: 6 }}>
               {retirada ? "Informe este código no balcão ao retirar o pedido." : "Informe este código ao entregador quando receber o pedido."}
             </div>
+            <div style={{ ...texto, fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+              {retirada ? "Ou mostre o QR Code para o restaurante ler." : "Ou mostre o QR Code para o entregador ler com a câmera."}
+            </div>
           </div>
+          <QrCodeEntrega pedidoId={pedido.id} codigo={pedido.codigo_entrega} />
         </div>
       )}
 
