@@ -20,19 +20,24 @@ const METODOS = [
  * 2. Confirma o método — PUT /pagamentos/pedidos/{id}/metodo.
  * 3. Cartão: formulário do cartão. PIX: tela do QR Code. Dinheiro: o
  *    pedido já vai para o restaurante e é pago na entrega.
+ *
+ * Se a pessoa já criou o pedido e voltou desta tela (do cartão ou do PIX),
+ * `pedidoExistente` vem preenchido: o pedido é reaproveitado e só a forma
+ * de pagamento é trocada (a cesta já foi esvaziada; criar de novo daria
+ * "A cesta está vazia").
  */
-export default function TipoPagamentoView({ sacola, resumo, tipoEntrega, onBack, onPedidoPronto }) {
+export default function TipoPagamentoView({ sacola, resumo, tipoEntrega, pedidoExistente, onBack, onPedidoPronto }) {
   const [metodo, setMetodo] = useState("cartao");
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
 
-  const total = Number(resumo?.total ?? sacola?.total ?? 0);
+  const total = Number(pedidoExistente?.valor_total ?? resumo?.total ?? sacola?.total ?? 0);
 
   const continuar = async () => {
     setErro("");
     setEnviando(true);
     try {
-      const pedido = await pedidos.criar({
+      const pedido = pedidoExistente ?? await pedidos.criar({
         tipo_entrega: tipoEntrega,
         forma_pagamento: metodo,
         // Mesmo endereço mostrado na cesta (o pedido grava uma cópia dele).
@@ -56,6 +61,11 @@ export default function TipoPagamentoView({ sacola, resumo, tipoEntrega, onBack,
       <h1 style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 17, color: "#fff", margin: 0 }}>
         FORMA DE PAGAMENTO
       </h1>
+      {pedidoExistente && (
+        <p style={{ fontFamily: "'Exo 2', sans-serif", color: "#d8d8d8", fontSize: 12, marginTop: 6 }}>
+          Pedido #{pedidoExistente.id} já criado: escolha outra forma de pagamento, se quiser.
+        </p>
+      )}
       <p style={{ fontFamily: "'Exo 2', sans-serif", color: "var(--muted)", fontSize: 13, marginTop: 6 }}>
         Total do pedido: <span style={{ color: "var(--accent)", fontWeight: 700 }}>{fmt(total)}</span>
         {" · "}{tipoEntrega === "retirada" ? "Retirada no balcão" : "Entrega no seu endereço"}

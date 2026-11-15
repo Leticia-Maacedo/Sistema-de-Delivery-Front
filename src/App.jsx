@@ -388,6 +388,7 @@ export default function App() {
             onAdicionarSugestao={adicionarAoCarrinho}
             onIrParaPagamento={(resumo) => {
               setResumoCesta(resumo);
+              setPedidoAtual(null); // compra nova: o próximo passo cria um pedido novo
               goTo("pedido-tipo-pagamento");
             }}
           />
@@ -398,11 +399,12 @@ export default function App() {
             sacola={sacola}
             resumo={resumoCesta}
             tipoEntrega={tipoEntrega}
+            pedidoExistente={pedidoAtual?.status === "aguardando_aceite" ? pedidoAtual : null}
             onBack={() => setView("cesta")}
             onPedidoPronto={(pedido, metodo) => {
               setPedidoAtual(pedido);
+              setSacola(null); // a API esvaziou a cesta ao criar o pedido
               if (metodo === "dinheiro") {
-                setSacola(null);
                 setView("pedido-confirmado");
               } else {
                 setView(metodo === "pix" ? "pedido-pix" : "pedido-cartao");
