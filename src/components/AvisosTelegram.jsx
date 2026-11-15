@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Send, BellOff, ExternalLink } from "lucide-react";
+import { Send, BellOff, ExternalLink, Copy, Check } from "lucide-react";
+import QRCode from "qrcode";
 import { notificacoes, ApiError } from "../api/client";
 
 const INTERVALO_MS = 3000;
@@ -12,13 +13,17 @@ const LIMITE_MS = 5 * 60 * 1000;
  *    único (POST /notificacoes/telegram/vincular) e abre o Telegram.
  * 2. A pessoa toca em Iniciar; esta tela confere a cada 3 s
  *    (POST /notificacoes/telegram/confirmar) até a conta ficar ligada.
- * Some quando o bot não está configurado na API.
+ * Se o link não abrir (computador sem o Telegram instalado), a tela mostra
+ * o QR Code do link para ler com o celular e o comando "/start <código>"
+ * para mandar ao bot. Some quando o bot não está configurado na API.
  */
 export default function AvisosTelegram() {
   const [estado, setEstado] = useState(null); // { disponivel, vinculado }
   const [link, setLink] = useState("");
   const [aguardando, setAguardando] = useState(false);
   const [erro, setErro] = useState("");
+  const [qr, setQr] = useState("");
+  const [copiado, setCopiado] = useState(false);
   const timer = useRef(null);
 
   useEffect(() => {
@@ -36,6 +41,7 @@ export default function AvisosTelegram() {
     try {
       const r = await notificacoes.telegram.vincular();
       setLink(r.link);
+      QRCode.toDataURL(r.link, { width: 320, margin: 1 }).then(setQr).catch(() => setQr(""));
       window.open(r.link, "_blank", "noopener");
       setAguardando(true);
       const inicio = Date.now();
@@ -68,6 +74,15 @@ export default function AvisosTelegram() {
     }
   };
 
+  const comando = link ? `/start ${link.split("start=")[1] || ""}` : "";
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(comando);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    } catch { /* sem permissão para a área de transferência */ }
+  };
+
   if (!estado?.disponivel) return null;
   const texto = { fontFamily: "'Exo 2', sans-serif" };
   return (
@@ -84,10 +99,18 @@ export default function AvisosTelegram() {
         <>
           <span style={{ ...texto, fontSize: 12, color: "#d8d8d8" }}>Receba no Telegram um aviso a cada etapa do pedido (aceito, em preparo, saiu para entrega...).</span>
           {aguardando ? (
-            <span style={{ ...texto, fontSize: 12, color: "var(--muted)" }}>
-              Aguardando você tocar em <b>Iniciar</b> no Telegram...{" "}
-              {link && <a href={link} target="_blank" rel="noreferrer" style={{ color: "var(--accent)" }}>Abrir o Telegram de novo <ExternalLink size={11} /></a>}
-            </span>
+            <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+              {qr && <img src={qr} width={140} height={140} alt="QR Code do link do bot do Telegram" style={{ borderRadius: 8, background: "#fff", padding: 4 }} />}
+              <div style={{ ...texto, fontSize: 12, color: "var(--muted)", display: "flex", flexDirection: "column", gap: 8, flex: 1, minWidth: 220 }}>
+                <span>Aguardando você tocar em <b>Iniciar</b> no Telegram...</span>
+                <a href={link} target="_blank" rel="noreferrer" style={{ color: "var(--accent)" }}>Abrir o Telegram de novo <ExternalLink size={11} /></a>
+                <span>Não abriu? Leia o QR Code com o celular, ou mande ao bot <b>@{link.split("/")[3]?.split("?")[0]}</b> esta mensagem:</span>
+                <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <code style={{ color: "#fff", background: "var(--panel)", padding: "4px 8px", borderRadius: 6 }}>{comando}</code>
+                  <button className="ef-icon-btn" aria-label="Copiar o comando" onClick={copiar}>{copiado ? <Check size={13} /> : <Copy size={13} />}</button>
+                </span>
+              </div>
+            </div>
           ) : (
             <button className="ef-btn-solid" style={{ width: "auto", alignSelf: "flex-start" }} onClick={ligar}><Send size={14} /> RECEBER AVISOS NO TELEGRAM</button>
           )}
