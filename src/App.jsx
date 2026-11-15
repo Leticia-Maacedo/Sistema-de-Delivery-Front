@@ -360,6 +360,7 @@ export default function App() {
             localId={enderecoEntregaId}
             onTrocarEndereco={setEnderecoEntregaId}
             onNovoEndereco={() => abrirFormularioEndereco(null, "cesta")}
+            onAdicionarSugestao={adicionarAoCarrinho}
             onIrParaPagamento={(resumo) => {
               setResumoCesta(resumo);
               goTo("pedido-tipo-pagamento");

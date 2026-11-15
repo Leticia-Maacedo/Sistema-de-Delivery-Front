@@ -3,13 +3,17 @@ import { ArrowLeft, MapPin, ShoppingCart, Plus, Minus } from "lucide-react";
 import SeloFuncionamento from "../../components/SeloFuncionamento";
 import EmptyState from "../../components/EmptyState";
 import GoogleMapa from "../../components/GoogleMapa";
+import SugestoesProdutos from "../../components/SugestoesProdutos";
 import { consultas, ApiError } from "../../api/client";
 
 const fmt = (n) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
 
 /**
  * Listagem e seleção de produtos — GET /consultas/restaurantes/{id}/cardapio.
- * Só traz itens com disponivel = true (o back já filtra).
+ * Só traz itens com disponivel = true e que não estão esgotados (o back já filtra).
+ * Com estoque controlado, o + para no limite e aparece "Últimas N unidades".
+ * Acima da lista ficam as sugestões (GET .../sugestoes), que levam em conta
+ * o que já está na cesta.
  *
  * O carrinho ({ produtoId: quantidade }) e as funções pra alterá-lo vêm
  * de fora (props), porque a tela de "detalhes do produto" precisa
@@ -47,6 +51,7 @@ export default function CardapioRestauranteView({ restauranteId, onBack, onSelec
   }
 
   const { restaurante, itens } = dados;
+  const idsNaCesta = itens.filter((it) => (carrinho[it.id] || 0) > 0).map((it) => it.id);
   // Fechado ou pausado: o cliente vê o cardápio, mas não monta o pedido.
   const fechado = restaurante.aberto === false;
 
@@ -78,17 +83,32 @@ export default function CardapioRestauranteView({ restauranteId, onBack, onSelec
         </div>
       )}
 
+      <SugestoesProdutos
+        restauranteId={restauranteId}
+        naCesta={idsNaCesta}
+        onAdicionar={onAdicionar}
+        desabilitado={fechado}
+        titulo={idsNaCesta.length ? "Combina com o seu pedido" : "Mais pedidos deste restaurante"}
+      />
+
       <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 10 }}>
         <span style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 700, fontSize: 13, color: "#fff" }}>Cardápio</span>
         {itens.length === 0 && <EmptyState title="CARDÁPIO VAZIO" subtitle="Esse restaurante ainda não tem itens disponíveis." />}
         {itens.map((it) => {
           const qtd = carrinho[it.id] || 0;
+          // Estoque (Sprint 4): null = sem controle. O back também recusa, isto só evita o clique inútil.
+          const noLimite = it.estoque != null && qtd >= it.estoque;
           return (
             <div key={it.id} className="ef-card" style={{ padding: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
               <div onClick={() => onSelectProduto(it.id)} style={{ flex: 1, cursor: "pointer" }}>
                 <div style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 600, fontSize: 13, color: "#fff" }}>{it.nome}</div>
                 {it.descricao && <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 11, color: "var(--muted)", marginTop: 3 }}>{it.descricao}</div>}
                 <div style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 700, fontSize: 13, color: "var(--accent)", marginTop: 6 }}>{fmt(it.preco)}</div>
+                {it.estoque != null && it.estoque <= 5 && (
+                  <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 11, color: "#F5A623", marginTop: 4 }}>
+                    {it.estoque === 1 ? "Última unidade" : `Últimas ${it.estoque} unidades`}
+                  </div>
+                )}
               </div>
               {fechado && qtd === 0 ? null : qtd === 0 ? (
                 <button onClick={() => onAdicionar(it.id)} style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "var(--accent)", color: "#0D0D0D", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -98,7 +118,7 @@ export default function CardapioRestauranteView({ restauranteId, onBack, onSelec
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                   <button onClick={() => onRemover(it.id)} className="ef-icon-btn"><Minus size={14} /></button>
                   <span style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 700, fontSize: 13, color: "#fff", minWidth: 14, textAlign: "center" }}>{qtd}</span>
-                  <button onClick={() => onAdicionar(it.id)} className="ef-icon-btn" style={{ color: "var(--accent)", borderColor: "var(--accent)" }}><Plus size={14} /></button>
+                  <button onClick={() => onAdicionar(it.id)} disabled={noLimite} title={noLimite ? "Sem mais unidades em estoque" : undefined} className="ef-icon-btn" style={{ color: "var(--accent)", borderColor: "var(--accent)", opacity: noLimite ? 0.35 : 1 }}><Plus size={14} /></button>
                 </div>
               )}
             </div>
