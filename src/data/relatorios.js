@@ -10,9 +10,10 @@
  * flutuante (ex.: 0,1 + 0,2).
  */
 
-// Mesma regra do faturamento do painel do parceiro (parceiro_controller):
-// só o pedido cancelado fica de fora das somas.
-export const STATUS_FORA_DO_RELATORIO = ["cancelado"];
+// Mesma regra das rotas /relatorios/* da API (app/core/relatorios.py): venda é
+// pedido que o restaurante aceitou. Ficam de fora os cancelados e os que ainda
+// aguardam aceite (podem nem ter sido pagos).
+export const STATUS_FORA_DO_RELATORIO = ["cancelado", "aguardando_aceite"];
 
 export const moeda = (n) =>
   Number(n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -26,7 +27,7 @@ const nomeDoRestaurante = (p) => p.restaurante_nome || `Restaurante #${p.restaur
 // e datas nesse formato comparam certo como texto (sem problema de fuso).
 const diaDoPedido = (p) => String(p.criado_em || "").slice(0, 10);
 
-/** Tira os cancelados e aplica busca por restaurante e período (datas "AAAA-MM-DD", inclusivas). */
+/** Tira os cancelados e os aguardando aceite e aplica busca por restaurante e período (datas "AAAA-MM-DD", inclusivas). */
 export function filtrarPedidos(pedidos, { busca = "", dataInicial = "", dataFinal = "" } = {}) {
   const termo = busca.trim().toLowerCase();
   return pedidos.filter((p) => {

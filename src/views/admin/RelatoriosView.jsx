@@ -75,7 +75,7 @@ function GraficoPagamento({ titulo, formas, valorDe, formatar, centro }) {
  *
  * Dados: GET /pedidos/painel?incluir_finalizados=true (o admin vê todos; o
  * restaurante só os dos próprios restaurantes). Cálculo em data/relatorios.js.
- * Pedidos cancelados não entram nas somas (mesma regra do painel do parceiro).
+ * Pedidos cancelados e aguardando aceite não entram nas somas (mesma regra de /relatorios/* na API).
  */
 export default function RelatoriosView({ papel }) {
   const [lista, setLista] = useState(null);
