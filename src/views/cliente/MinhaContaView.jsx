@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { UserCircle, KeyRound, Save, UserX } from "lucide-react";
 import PageHeader from "../../components/PageHeader";
 import Field from "../../components/Field";
+import AvisosTelegram from "../../components/AvisosTelegram";
 import { usuarios, fetchUsuarioLogado, saveUsuario, ApiError } from "../../api/client";
 
 const TIPOS = { cliente: "Cliente", restaurante: "Restaurante", entregador: "Entregador", admin: "Administrador" };
@@ -142,6 +143,8 @@ export default function MinhaContaView({ onUsuarioAtualizado, onContaEncerrada }
           <KeyRound size={14} /> {salvandoSenha ? "ALTERANDO..." : "ALTERAR SENHA"}
         </button>
       </div>
+
+      {usuario?.tipo === "cliente" && <AvisosTelegram />}
 
       <div className="ef-card" style={{ padding: 22, marginTop: 14, display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={{ fontFamily: "'Exo 2', sans-serif", fontWeight: 700, fontSize: 12, color: "var(--muted)", letterSpacing: 1 }}>

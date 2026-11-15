@@ -498,6 +498,13 @@ export const notificacoes = {
   chavePublica: () => apiFetch("/notificacoes/chave-publica"),
   inscrever: (inscricao) => apiFetch("/notificacoes/inscricao", { method: "POST", body: JSON.stringify(inscricao) }),
   cancelar: (endpoint) => apiFetch("/notificacoes/inscricao", { method: "DELETE", body: JSON.stringify({ endpoint }) }),
+  /** Avisos pelo Telegram (backlog): situação, link do bot, conferir o vínculo e desligar. */
+  telegram: {
+    situacao: () => apiFetch("/notificacoes/telegram"),
+    vincular: () => apiFetch("/notificacoes/telegram/vincular", { method: "POST" }),
+    confirmar: () => apiFetch("/notificacoes/telegram/confirmar", { method: "POST" }),
+    desvincular: () => apiFetch("/notificacoes/telegram", { method: "DELETE" }),
+  },
 };
 
 /* ------------------------------------------------------------------ */
