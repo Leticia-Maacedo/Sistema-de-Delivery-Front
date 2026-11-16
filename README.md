@@ -2,11 +2,18 @@
 
 Interface web da plataforma EntregaFood, construída em **React 18 + Vite 5**. Consome a API REST do back-end ([Sistema-de-Delivery-Back](https://github.com/Leticia-Maacedo/Sistema-de-Delivery-Back)).
 
-**Sprint 1** — telas de Login, Cadastro e Perfil do Usuário, integradas de ponta a ponta com a API real.
-**Extra** — três áreas de navegação (Cliente, Parceiro, Admin) com sidebar própria; CRUD completo de Restaurante e de Usuário via API real no painel admin; login por e-mail/senha, telefone (OTP) e social.
+**Publicado em:** https://entregafood-front.onrender.com (API em `https://entregafood-api.onrender.com`).
+
+**Sprint 1** — Login, Cadastro e Perfil do Usuário, integrados de ponta a ponta com a API real.
+**Sprint 2** — Consulta de restaurantes e cardápio; cadastro com endereço (ViaCEP/Nominatim) e login por telefone (código).
+**Sprint 3** — Cesta, fechamento do pedido com taxa de entrega, pagamento (cartão, PIX e dinheiro), acompanhamento com mapa e notificações, Portal do Parceiro e Minha conta.
+**Sprint 4** — Cancelamento pelo cliente, relatórios, estoque no cardápio do parceiro e sugestões de produtos.
+**Backlog final** — Painel de chamada, QR Code do código de entrega lido pela câmera, rota otimizada do entregador, código de barras dos produtos, compartilhamento nas redes sociais e avisos pelo Telegram.
 **Grupo:** Amigos do Gilberto · Turma A · Faculdade Impacta
 
-**📚 Documentação detalhada:** [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) (roteamento, API client, débitos técnicos) · [`docs/TELAS_E_COMPONENTES.md`](docs/TELAS_E_COMPONENTES.md) (catálogo de toda tela e componente, com o que já usa API real e o que ainda é mock).
+**Repositórios do projeto:** [back-end (API FastAPI)](https://github.com/Leticia-Maacedo/Sistema-de-Delivery-Back) · este front-end · [aplicativo Android](https://github.com/annahigaf/EntregaFood-Mobile) e [API do aplicativo](https://github.com/annahigaf/entregafood-api) (o app usa a própria API em Node.js, separada da API do site).
+
+**📚 Documentação completa:** o Documento do Projeto (v6) descreve telas, rotas, banco, testes e o aplicativo Android. Os arquivos em `docs/` (`ARQUITETURA.md`, `TELAS_E_COMPONENTES.md`) são do início do projeto e foram mantidos como histórico — para o estado atual, use este README.
 
 ---
 
@@ -45,7 +52,7 @@ Por padrão, o front conversa com a API em `http://localhost:8000`. Se a sua API
 VITE_API_URL=http://localhost:8000
 ```
 
-Para usar a API publicada no Render (sem subir o back-end local), coloque `VITE_API_URL=https://entregafood-back-dev.onrender.com`.
+Para usar a API publicada no Render (sem subir o back-end local), coloque `VITE_API_URL=https://entregafood-api.onrender.com`.
 
 ---
 
@@ -64,7 +71,7 @@ O arquivo [`render.yaml`](render.yaml) já tem toda a configuração: build com 
 
 ### 2. Liberar o endereço novo na API (quem administra o serviço da API no Render)
 
-No serviço **entregafood-back-dev** → **Environment**:
+No serviço **entregafood-api** → **Environment**:
 
 | Variável | Valor |
 |---|---|
@@ -85,76 +92,48 @@ Abrir o endereço do site, entrar com uma conta e fazer um pedido. A primeira ch
 
 ## Fluxo da aplicação
 
-A navegação **não usa React Router** — `src/App.jsx` guarda a tela atual num
-`useState` e troca de tela com um `switch`. A sidebar (esquerda) é sempre
-visível, com três áreas:
+A navegação **não usa React Router**: `src/App.jsx` guarda a tela atual num `useState` (`view`) e troca de tela com um `switch`.
+`src/data/navigation.js` define, para cada tipo de conta, o menu e as telas permitidas; `telaPermitida(papel, view)` devolve a tela inicial do papel quando alguém tenta abrir uma tela que não é dele.
+Sem sessão, só abrem as telas de login e cadastro. O link `/?restaurante={id}` (compartilhado nas redes) abre direto o cardápio daquele restaurante, depois do login.
 
-```
-┌───────────────┐   ┌──────────────────────────────────────────────┐
-│               │   │                                                │
-│   CLIENTE     │   │  Início · Explorar · Restaurantes · Pedidos ·  │
-│   PARCEIRO    │──▶│  Pagamento · Entrar          (área Cliente)    │
-│  (sidebar     │   │                                                │
-│   comum)      │   │  Área do Parceiro · Cardápios · Avaliações     │
-│               │   │                                       (Parceiro)│
-└───────────────┘   └──────────────────────────────────────────────┘
+| Conta | Tela inicial | Menu |
+|---|---|---|
+| visitante | Login | login, login do parceiro e cadastros |
+| cliente | Explorar | Início, Explorar, Restaurantes, Pedidos, Endereços, Minha conta |
+| restaurante | Meu restaurante | Meu restaurante, Pedidos, Painel de chamada, Relatórios, Cardápio, Minha conta |
+| entregador | Entregas | Entregas, Minha conta |
+| admin | Dashboard | Dashboard, Usuários, Restaurantes, Produtos, Pedidos, Relatórios, Entregas |
 
-┌───────────────┐   ┌──────────────────────────────────────────────┐
-│    ADMIN      │──▶│  Dashboard · Restaurantes · Pedidos · Entregas │
-│  (sidebar     │   │  · Funcionalidades   (só os itens com tela     │
-│   própria)    │   │  ligada — ver docs/TELAS_E_COMPONENTES.md)     │
-└───────────────┘   └──────────────────────────────────────────────┘
-```
-
-Não há mais um "portão" de login que esconde a navegação — a sidebar
-aparece mesmo sem sessão ativa; o login/cadastro é só mais uma tela
-alcançável pelo item **Entrar** do menu Cliente. Ao carregar, o app verifica
-se já existe uma sessão salva no `localStorage` (`isLoggedIn()`) e, se
-houver, abre direto na Página Principal.
-
-Nem toda tela do código está no roteador (algumas existem no repositório
-mas ainda não têm um `case` correspondente em `App.jsx`, ou dependem de
-props que `App.jsx` ainda não passa) — o inventário completo, tela por
-tela, com o que é alcançável e o que não é, está em
-[`docs/TELAS_E_COMPONENTES.md`](docs/TELAS_E_COMPONENTES.md).
+A sessão (token JWT + dados do usuário) fica no `localStorage` (`entregafood_token` e `entregafood_usuario`). `src/api/client.js` centraliza todas as chamadas à API — nenhuma tela chama `fetch` direto — e transforma erros HTTP em `ApiError` com a mensagem da API. `public/sw.js` é o service worker das notificações.
 
 ---
 
 ## Funcionalidades implementadas
 
-Visão resumida — o catálogo completo (toda tela, todo componente, o que
-usa API real vs. dado fictício) está em
-[`docs/TELAS_E_COMPONENTES.md`](docs/TELAS_E_COMPONENTES.md).
+Todas as telas usam a API real (não há mais dados fictícios).
 
-| Área | Já usa a API real | Ainda usa dado fictício (`data/mockData.js`) |
+| Área | Telas (`src/views/...`) | O que fazem |
 |---|---|---|
-| **Cliente** | Login (e-mail/senha, telefone OTP, Google/Facebook), Cadastro (dados + endereço, com ViaCEP/Nominatim) | Início, Página Principal, Restaurantes (lista/busca), Cardápio do restaurante, Pagamento, Histórico |
-| **Parceiro** | Cadastro/edição do próprio restaurante (`parceiro/CardapioRestauranteView.jsx`, ainda não ligada ao roteador) | Área do Parceiro (pedidos), Cardápios, Avaliações |
-| **Admin** | Restaurantes (CRUD completo) | Dashboard, Pedidos, Detalhe do Pedido, Entregas |
+| **Acesso** | `cliente/LoginView`, `CadastroDadosView`, `CadastroTelefoneView`, `CadastroEnderecoView` | Login por e-mail/telefone e senha, código por e-mail, Google e Facebook; cadastro de cliente e de parceiro com endereço (ViaCEP, Nominatim, AwesomeAPI) |
+| **Cliente** | `PaginaPrincipalView`, `InicioCategoriasView`, `RestaurantesListaView`, `CardapioRestauranteView`, `ProdutoDetalheView` | Restaurantes que entregam no endereço, cardápio com selo de funcionamento, sugestões de produtos e botão de compartilhar (WhatsApp, Facebook, X, link) |
+| | `CestaView`, `TipoPagamentoView`, `FormularioCartaoView`, `PagamentoPixView`, `PedidoConfirmadoView` | Cesta com subtotal, taxa de entrega e total; entrega ou retirada; cartão e PIX (Asaas sandbox) ou dinheiro; trocar a forma de pagamento reaproveita o mesmo pedido |
+| | `HistoricoView`, `AcompanharPedidoView`, `EnderecosView`, `MinhaContaView` | Pedidos, linha do tempo, mapa com o entregador, código e QR Code de entrega, cancelamento; endereços; dados, senha, avisos no Telegram e encerrar conta |
+| **Parceiro** | `parceiro/AreaParceiroView`, `CadastroRestauranteView`, `CardapiosView`, `PainelChamadaView` | Restaurante (horário, raio, pausa), pedidos e números do dia; cardápio com estoque e código de barras lido pela câmera; painel de chamada para a TV do balcão |
+| **Entregador** | `admin/EntregasView` | Entregas, saída para entrega, localização, confirmação pelo código ou pelo QR Code do cliente e rota otimizada no Google Maps |
+| **Admin** | `admin/DashboardView`, `UsuariosView`, `RestaurantesView`, `ProdutosView`, `PedidosView`, `PedidoDetalheView`, `RelatoriosView` | Dashboard com dados reais, aprovação de restaurantes, usuários, produtos, pedidos e relatórios (também para o restaurante) |
 
-Usuários (CRUD completo, `usuario_controller.py` no back) e Produtos (CRUD
-completo, `produto_controller.py`) já têm tela pronta e integrada à API
-real (`UsuariosView.jsx`, `ProdutosView.jsx`), mas nenhuma das duas está
-conectada ao roteador do `App.jsx` ainda — ver "Débitos técnicos" em
-`docs/ARQUITETURA.md` antes de ligá-las.
-
-A sessão (token JWT + dados do usuário) fica no `localStorage`, sob as
-chaves `entregafood_token` e `entregafood_usuario`. `src/api/client.js`
-centraliza todas as chamadas à API — nenhuma tela chama `fetch` direto.
+Componentes de destaque (`src/components/`): `LeitorCodigo` (câmera, html5-qrcode), `QrCodeEntrega` (qrcode), `RotaEntregas` (+ `data/rota.js`, caminho mínimo), `CompartilharRestaurante`, `AvisosTelegram`, `SugestoesProdutos`, `GoogleMapa`, `BotaoNotificacoes`.
 
 ---
 
 ## Limitações conhecidas
 
-- **Login social (Google/Facebook)**: implementado e funcional na branch `DEV`. Como os aplicativos OAuth estão em modo de teste nos provedores, o acesso pode ficar restrito às contas cadastradas como usuários de teste. Para colegas, professor ou outros usuários testarem o sistema sem configuração adicional, recomenda-se utilizar o login por e-mail e senha.
-- **Telas com tela pronta mas fora do roteador**: `UsuariosView` (admin), `ProdutosView`, `CadastroTelefoneView` e `PerfilView` (cliente) já existem e já chamam a API real — mas nenhuma tem um `case` correspondente em `src/App.jsx`, então não são alcançáveis navegando pelo app hoje. `UsuariosView` e `PerfilView` têm, além disso, imports quebrados (`obterUsuarioSalvo` e, no caso de `PerfilView`, mais três funções) que não existem em `client.js` — ver `docs/ARQUITETURA.md` antes de ligar qualquer uma das duas. `src/views/cliente/EnderecosView.jsx` é ainda mais cedo: arquivo vazio.
-- **Cadastro/edição de restaurante pela interface**: existe (`src/views/parceiro/CardapioRestauranteView.jsx`, cria `Local` + `Restaurante` via API, com CEP/geocodificação), mas também não está ligada ao roteador ainda — o botão "editar restaurante" em Área do Parceiro já está preparado para chamá-la (prop `onEditRestaurante`) mas `App.jsx` não fornece esse callback.
-- **Pedidos, pagamento, histórico, dashboard admin**: ainda usam dados fictícios de `data/mockData.js` — não há endpoint de pedido/pagamento/entrega no back-end ainda (as tabelas existem no schema SQL, mas sem model/controller, ver `docs/BANCO_DE_DADOS.md` do back).
-- **Sem controle de acesso por rota**: nada impede alguém de manipular o estado do React pra tentar ver outra tela — a UI não bloqueia nada por tipo de conta; quem protege de verdade é o back-end (que devolve `401`/`403` quando cabe).
-
-Inventário completo e atualizado de todas as telas — o que é real, o que é
-mock, o que está conectado e o que não está — em
-[`docs/TELAS_E_COMPONENTES.md`](docs/TELAS_E_COMPONENTES.md).
+- **Login social (Google/Facebook)**: implementado. Como os aplicativos OAuth estão em modo de teste nos provedores, só entram as contas cadastradas como testadoras; para testar, use e-mail e senha.
+- **API gratuita do Render**: depois de um tempo parada, a primeira chamada pode levar até 1 minuto.
+- **Câmera (QR Code e código de barras)**: precisa de HTTPS (ou localhost) e da permissão do navegador.
+- **Pagamento**: Asaas em modo sandbox, sem dinheiro de verdade (cartões de teste do Asaas).
+- **Controle de acesso**: o front esconde as telas de outros tipos de conta, mas quem protege de verdade é a API (`401`/`403`).
+- **Avaliações**: ainda não implementadas.
 
 ---
 
